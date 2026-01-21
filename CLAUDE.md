@@ -166,7 +166,131 @@ The project is designed for Azure Static Web Apps which:
 - Runs Azure Functions as the `/api` backend
 - Handles auth routing automatically
 
-Create `staticwebapp.config.json` for routing configuration.
+### Azure SWA Deployment Learnings (IMPORTANT)
+
+#### Environment Variables Required
+
+**Frontend (VITE_ prefix)** - Set in GitHub Secrets AND Azure SWA Configuration:
+| Variable | Purpose |
+|----------|---------|
+| `VITE_SUPABASE_URL` | Supabase project URL for frontend auth |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous/public key |
+
+**Backend (Azure Functions)** - Set ONLY in Azure SWA Configuration (Application Settings):
+| Variable | Purpose |
+|----------|---------|
+| `SUPABASE_URL` | Same as VITE_SUPABASE_URL (backend needs it too) |
+| `SUPABASE_SERVICE_KEY` | Supabase **service role key** (secret key, NOT anon key) |
+| `AZURE_STORAGE_CONNECTION_STRING` | Azure Table Storage connection string |
+
+⚠️ **Critical**: Backend vars are DIFFERENT from frontend vars. The service key is secret and must never be exposed to frontend.
+
+#### Azure Functions v4 + TypeScript Configuration
+
+For Azure Functions v4 with TypeScript to work on Azure SWA:
+
+1. **package.json** must have:
+   ```json
+   {
+     "type": "commonjs",
+     "main": "dist/src/functions/index.js",
+     "engines": { "node": ">=18.0.0" },
+     "dependencies": {
+       "@azure/functions": "^4.5.0"
+     }
+   }
+   ```
+
+2. **host.json** - Set empty routePrefix (SWA adds `/api` automatically):
+   ```json
+   {
+     "version": "2.0",
+     "extensionBundle": {
+       "id": "Microsoft.Azure.Functions.ExtensionBundle",
+       "version": "[4.*, 5.0.0)"
+     },
+     "extensions": {
+       "http": {
+         "routePrefix": ""
+       }
+     }
+   }
+   ```
+
+3. **src/functions/index.ts** - Must import all function files:
+   ```typescript
+   import './students';
+   import './programs';
+   // ... etc
+   ```
+
+4. **tsconfig.json** - Output to `dist/`:
+   ```json
+   {
+     "compilerOptions": {
+       "module": "commonjs",
+       "outDir": "dist",
+       "rootDir": "."
+     },
+     "include": ["src/**/*"]
+   }
+   ```
+
+#### GitHub Actions Workflow
+
+Minimal working workflow for React + Azure Functions:
+```yaml
+- uses: Azure/static-web-apps-deploy@v1
+  with:
+    app_location: "./frontend"
+    api_location: "./api"
+    output_location: "dist"
+  env:
+    VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+    VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+```
+
+**Do NOT use `skip_api_build: true`** - Let Oryx detect and build the API for proper runtime detection.
+
+#### Auth Token Flow (Critical Bug Fix)
+
+When using Supabase Auth with a custom API, the auth token must be passed from frontend to backend:
+
+```typescript
+// In AuthContext.tsx - call setAuthToken when session changes
+import { setAuthToken } from '../services/dataService';
+
+// On login/session restore:
+setAuthToken(session?.access_token ?? null);
+
+// On logout:
+setAuthToken(null);
+```
+
+Without this, API calls go out without `Authorization: Bearer <token>` header and fail with 401.
+
+#### Common Deployment Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `404 Not Found` on `/api/*` | API not deployed or built | Check workflow, ensure TypeScript compiles |
+| `Function language info isn't provided` | Oryx can't detect Node.js | Add `engines` field, don't use `skip_api_build` |
+| `Request failed` after login | Auth token not passed to API | Wire up `setAuthToken()` in AuthContext |
+| `401 Unauthorized` | Missing/invalid backend env vars | Add `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` in Azure |
+
+#### staticwebapp.config.json
+
+```json
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/api/*", "*.{css,js,png,jpg,jpeg,gif,svg,ico,woff,woff2}"]
+  },
+  "routes": [
+    { "route": "/api/*", "allowedRoles": ["anonymous"] }
+  ]
+}
+```
 
 ## Known Issues / TODOs
 1. Large JS bundle size (876 kB) - could benefit from code splitting
