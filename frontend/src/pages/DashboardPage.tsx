@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/common/Button';
@@ -7,83 +7,82 @@ import { QuarterGoalCard } from '../components/dashboard/QuarterGoalCard';
 import { RecentActivity } from '../components/dashboard/RecentActivity';
 import { QuickStats } from '../components/dashboard/QuickStats';
 import { ROUTES } from '../constants/routes';
-import { RecentActivity as RecentActivityType, ProgramEnrollment } from '../types';
+import { RecentActivity as RecentActivityType, ProgramEnrollment, DashboardStats } from '../types';
 import { PlusIcon } from '@heroicons/react/24/outline';
-
-// Mock data - will be replaced with API calls
-const mockStats = {
-  totalStudents: 156,
-  milestonesThisMonth: 42,
-  activePrograms: 4,
-  quarterGoalProgress: 84,
-  studentGrowth: 12,
-  milestoneGrowth: 8,
-};
-
-const mockActivities: RecentActivityType[] = [
-  {
-    id: '1',
-    studentId: 's1',
-    studentName: 'Priya Sharma',
-    milestoneType: 'academic',
-    description: 'Completed Math Level 2 assessment with 85% score',
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '2',
-    studentId: 's2',
-    studentName: 'Amit Patel',
-    milestoneType: 'life-skills',
-    description: 'Demonstrated excellent communication in group project',
-    timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '3',
-    studentId: 's3',
-    studentName: 'Sneha Kumar',
-    milestoneType: 'attendance',
-    description: 'Achieved 95% attendance milestone for the quarter',
-    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '4',
-    studentId: 's4',
-    studentName: 'Rajesh Verma',
-    milestoneType: 'academic',
-    description: 'Successfully completed Science project on renewable energy',
-    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '5',
-    studentId: 's5',
-    studentName: 'Ananya Singh',
-    milestoneType: 'life-skills',
-    description: 'Led team successfully in community service activity',
-    timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
-const mockProgramEnrollments: ProgramEnrollment[] = [
-  { programId: 'p1', programName: 'After School Program', enrollmentCount: 68, percentage: 70 },
-  { programId: 'p2', programName: 'Life Skills Training', enrollmentCount: 42, percentage: 45 },
-  { programId: 'p3', programName: 'Academic Support', enrollmentCount: 32, percentage: 35 },
-  { programId: 'p4', programName: 'Sports & Recreation', enrollmentCount: 14, percentage: 15 },
-];
+import { dataService } from '../services/dataService';
 
 export function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [activities, setActivities] = useState<RecentActivityType[]>([]);
+  const [programEnrollments, setProgramEnrollments] = useState<ProgramEnrollment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [statsResponse, activityResponse, enrollmentResponse] = await Promise.all([
+        dataService.dashboard.getStats(),
+        dataService.dashboard.getRecentActivity(),
+        dataService.dashboard.getProgramEnrollment(),
+      ]);
+
+      if (statsResponse.success && statsResponse.data) {
+        setStats(statsResponse.data);
+      }
+      if (activityResponse.success && activityResponse.data) {
+        setActivities(activityResponse.data);
+      }
+      if (enrollmentResponse.success && enrollmentResponse.data) {
+        setProgramEnrollments(enrollmentResponse.data);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
   const handleAddStudent = () => {
     navigate(ROUTES.STUDENTS, { state: { openAddModal: true } });
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-text-secondary text-body">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-red-500 mb-4">{error}</p>
+        <Button variant="secondary" onClick={fetchDashboardData}>
+          Try Again
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div>
       {/* Welcome Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-text-primary mb-1 tracking-tight">
-          Welcome back, {user?.displayName?.split(' ')[0] || 'Rahul'}! 👋
+          Welcome back, {user?.displayName?.split(' ')[0] || 'User'}! 👋
         </h1>
         <p className="text-text-secondary">
           Here's what's happening with your students today.
@@ -94,30 +93,30 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
           title="Total Students"
-          value={mockStats.totalStudents}
-          change={`+${mockStats.studentGrowth}% from last month`}
+          value={stats?.totalStudents || 0}
+          change={stats?.studentGrowth ? `+${stats.studentGrowth}% from last month` : 'No change'}
           icon="👥"
           iconColor="blue"
           link={{ label: 'View all students', onClick: () => navigate(ROUTES.STUDENTS) }}
         />
         <StatCard
           title="Milestones This Month"
-          value={mockStats.milestonesThisMonth}
-          change={`+${mockStats.milestoneGrowth}% from last month`}
+          value={stats?.milestonesThisMonth || 0}
+          change={stats?.milestoneGrowth ? `+${stats.milestoneGrowth}% from last month` : 'No change'}
           icon="🎯"
           iconColor="green"
           link={{ label: 'All milestones', onClick: () => {} }}
         />
         <StatCard
           title="Active Programs"
-          value={mockStats.activePrograms}
-          change="2 new programs added"
+          value={stats?.activePrograms || 0}
+          change="View all programs"
           icon="🎓"
           iconColor="orange"
           link={{ label: 'View programs', onClick: () => navigate(ROUTES.PROGRAMS) }}
         />
         <QuarterGoalCard
-          percentage={mockStats.quarterGoalProgress}
+          percentage={stats?.quarterGoalProgress || 0}
           onViewAll={() => {}}
         />
       </div>
@@ -136,10 +135,10 @@ export function DashboardPage() {
       {/* Dashboard Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <RecentActivity activities={mockActivities} onViewAll={() => {}} />
+          <RecentActivity activities={activities} onViewAll={() => {}} />
         </div>
         <div>
-          <QuickStats programs={mockProgramEnrollments} />
+          <QuickStats programs={programEnrollments} />
         </div>
       </div>
     </div>
