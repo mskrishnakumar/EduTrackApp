@@ -122,12 +122,12 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         {/* User Profile */}
         <div className={`flex items-center gap-2.5 p-2 rounded-md hover:bg-gray-50 cursor-pointer transition-all ${isCollapsed ? 'justify-center' : ''}`}>
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-body font-semibold flex-shrink-0">
-            {user ? getInitials(user.displayName) : 'RC'}
+            {user ? getInitials(user.displayName) : 'U'}
           </div>
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
               <h4 className="text-nav font-medium text-text-primary truncate">
-                {user?.displayName || 'Rahul Coordinator'}
+                {user?.displayName || 'User'}
               </h4>
               <span className="inline-block bg-warning-light text-amber-800 px-1.5 py-0.5 rounded text-[10px] font-semibold mt-0.5">
                 {user?.role === 'admin' ? 'Admin' : 'Coordinator'}

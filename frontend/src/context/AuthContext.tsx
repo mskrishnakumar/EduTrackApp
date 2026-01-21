@@ -21,7 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const MOCK_USER: User = {
   id: 'mock-user-id',
   email: 'admin@edutrack.com',
-  displayName: 'Rahul Coordinator',
+  displayName: 'Admin User',
   role: 'admin',
   centerId: null,
   centerName: null,
@@ -35,18 +35,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadUserProfile = useCallback(async (userId: string, token: string) => {
+  const loadUserProfile = useCallback(async (userId: string, email: string, token: string) => {
     try {
       const response = await api.get<User>('/users/me', token);
       if (response.success && response.data) {
         setUser(response.data);
+      } else {
+        // API returned but no data, create fallback user
+        setUser({
+          id: userId,
+          email: email,
+          displayName: email.split('@')[0],
+          role: 'admin',
+          centerId: null,
+          centerName: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
-      // If API is not available yet, use mock data based on Supabase user
+      // If API is not available, create user from Supabase data
       setUser({
-        ...MOCK_USER,
         id: userId,
+        email: email,
+        displayName: email.split('@')[0],
+        role: 'admin',
+        centerId: null,
+        centerName: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
     }
   }, []);
@@ -69,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Set auth token for API calls
       setAuthToken(session?.access_token ?? null);
       if (session?.user && session?.access_token) {
-        loadUserProfile(session.user.id, session.access_token);
+        loadUserProfile(session.user.id, session.user.email || '', session.access_token);
       } else {
         setLoading(false);
       }
@@ -83,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Set auth token for API calls
         setAuthToken(session?.access_token ?? null);
         if (session?.user && session?.access_token) {
-          await loadUserProfile(session.user.id, session.access_token);
+          await loadUserProfile(session.user.id, session.user.email || '', session.access_token);
         } else {
           setUser(null);
         }
