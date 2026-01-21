@@ -4,6 +4,9 @@
   "description": "EduTrack Azure Functions API",
   "type": "commonjs",
   "main": "dist/src/functions/index.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
