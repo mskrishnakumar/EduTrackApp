@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "EduTrack Azure Functions API",
   "type": "commonjs",
-  "main": "dist/src/functions/index.js",
+  "main": "dist/src/index.js",
   "engines": {
     "node": ">=18.0.0"
   },
