@@ -201,7 +201,7 @@ For Azure Functions v4 with TypeScript to work on Azure SWA:
    }
    ```
 
-2. **host.json** - Set empty routePrefix (SWA adds `/api` automatically):
+2. **host.json** - routePrefix MUST be "api" (Azure SWA requirement):
    ```json
    {
      "version": "2.0",
@@ -211,7 +211,7 @@ For Azure Functions v4 with TypeScript to work on Azure SWA:
      },
      "extensions": {
        "http": {
-         "routePrefix": ""
+         "routePrefix": "api"
        }
      }
    }
