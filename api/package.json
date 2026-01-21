@@ -4,7 +4,7 @@
   "description": "EduTrack Azure Functions API",
   "main": "dist/src/functions/index.js",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "build": "tsc",
@@ -14,7 +14,7 @@
     "test": "echo \"No tests yet\""
   },
   "dependencies": {
-    "@azure/data-tables": "13.1.2",
+    "@azure/data-tables": "^13.2.2",
     "@azure/functions": "^3.5.0",
     "@supabase/supabase-js": "^2.45.0",
     "uuid": "^9.0.0"
