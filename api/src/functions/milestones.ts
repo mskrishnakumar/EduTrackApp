@@ -1,4 +1,4 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { AzureFunction, Context, HttpRequest } from '@azure/functions';
 import { verifyAuth, checkCenterAccess } from '../middleware/auth';
 import { getTableClient, TABLES, entityToObject, createTimestampRowKey } from '../services/tableStorage';
 import { Milestone, MilestoneEntity, CreateMilestoneRequest, UpdateMilestoneRequest, ApiResponse, StudentEntity } from '../types';
@@ -18,17 +18,19 @@ function mapEntityToMilestone(entity: MilestoneEntity): Milestone {
 }
 
 // GET /api/students/{studentId}/milestones - Get milestones for a student
-async function getStudentMilestones(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const getStudentMilestones: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
-  const studentId = request.params.studentId;
+  const studentId = context.bindingData.studentId;
 
   if (!studentId) {
-    return { status: 400, jsonBody: { success: false, error: 'Student ID is required' } };
+    context.res = { status: 400, body: { success: false, error: 'Student ID is required' } };
+    return;
   }
 
   try {
@@ -45,11 +47,13 @@ async function getStudentMilestones(request: HttpRequest, context: InvocationCon
     }
 
     if (!studentCenterId) {
-      return { status: 404, jsonBody: { success: false, error: 'Student not found' } };
+      context.res = { status: 404, body: { success: false, error: 'Student not found' } };
+      return;
     }
 
     if (!checkCenterAccess(user, studentCenterId)) {
-      return { status: 403, jsonBody: { success: false, error: 'Access denied to this student' } };
+      context.res = { status: 403, body: { success: false, error: 'Access denied to this student' } };
+      return;
     }
 
     // Get milestones for the student
@@ -72,33 +76,36 @@ async function getStudentMilestones(request: HttpRequest, context: InvocationCon
       data: milestones,
     };
 
-    return { status: 200, jsonBody: response };
+    context.res = { status: 200, body: response };
   } catch (error) {
-    context.error('Error fetching milestones:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to fetch milestones' } };
+    context.log.error('Error fetching milestones:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to fetch milestones' } };
   }
-}
+};
 
 // POST /api/milestones - Create milestone
-async function createMilestone(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const createMilestone: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
 
   try {
-    const body = await request.json() as CreateMilestoneRequest;
+    const body = req.body as CreateMilestoneRequest;
 
     // Validate required fields
     if (!body.studentId || !body.type || !body.description || !body.dateAchieved) {
-      return { status: 400, jsonBody: { success: false, error: 'Missing required fields' } };
+      context.res = { status: 400, body: { success: false, error: 'Missing required fields' } };
+      return;
     }
 
     // Validate milestone type
     if (!['academic', 'life-skills', 'attendance'].includes(body.type)) {
-      return { status: 400, jsonBody: { success: false, error: 'Invalid milestone type' } };
+      context.res = { status: 400, body: { success: false, error: 'Invalid milestone type' } };
+      return;
     }
 
     // Verify access to the student
@@ -114,11 +121,13 @@ async function createMilestone(request: HttpRequest, context: InvocationContext)
     }
 
     if (!studentCenterId) {
-      return { status: 404, jsonBody: { success: false, error: 'Student not found' } };
+      context.res = { status: 404, body: { success: false, error: 'Student not found' } };
+      return;
     }
 
     if (!checkCenterAccess(user, studentCenterId)) {
-      return { status: 403, jsonBody: { success: false, error: 'Access denied to this student' } };
+      context.res = { status: 403, body: { success: false, error: 'Access denied to this student' } };
+      return;
     }
 
     const milestoneId = createTimestampRowKey();
@@ -142,29 +151,31 @@ async function createMilestone(request: HttpRequest, context: InvocationContext)
 
     const milestone = mapEntityToMilestone(milestoneEntity);
 
-    return { status: 201, jsonBody: { success: true, data: milestone } };
+    context.res = { status: 201, body: { success: true, data: milestone } };
   } catch (error) {
-    context.error('Error creating milestone:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to create milestone' } };
+    context.log.error('Error creating milestone:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to create milestone' } };
   }
-}
+};
 
 // PUT /api/milestones/{id} - Update milestone
-async function updateMilestone(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const updateMilestone: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
-  const milestoneId = request.params.id;
+  const milestoneId = context.bindingData.id;
 
   if (!milestoneId) {
-    return { status: 400, jsonBody: { success: false, error: 'Milestone ID is required' } };
+    context.res = { status: 400, body: { success: false, error: 'Milestone ID is required' } };
+    return;
   }
 
   try {
-    const body = await request.json() as UpdateMilestoneRequest;
+    const body = req.body as UpdateMilestoneRequest;
     const milestonesTable = getTableClient(TABLES.MILESTONES);
 
     // Find milestone across all students
@@ -177,7 +188,8 @@ async function updateMilestone(request: HttpRequest, context: InvocationContext)
 
       // Check center access
       if (!checkCenterAccess(user, centerId)) {
-        return { status: 403, jsonBody: { success: false, error: 'Access denied to this milestone' } };
+        context.res = { status: 403, body: { success: false, error: 'Access denied to this milestone' } };
+        return;
       }
 
       // Update fields
@@ -196,28 +208,31 @@ async function updateMilestone(request: HttpRequest, context: InvocationContext)
 
       const milestone = mapEntityToMilestone(updatedEntity);
 
-      return { status: 200, jsonBody: { success: true, data: milestone } };
+      context.res = { status: 200, body: { success: true, data: milestone } };
+      return;
     }
 
-    return { status: 404, jsonBody: { success: false, error: 'Milestone not found' } };
+    context.res = { status: 404, body: { success: false, error: 'Milestone not found' } };
   } catch (error) {
-    context.error('Error updating milestone:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to update milestone' } };
+    context.log.error('Error updating milestone:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to update milestone' } };
   }
-}
+};
 
 // DELETE /api/milestones/{id} - Delete milestone
-async function deleteMilestone(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const deleteMilestone: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
-  const milestoneId = request.params.id;
+  const milestoneId = context.bindingData.id;
 
   if (!milestoneId) {
-    return { status: 400, jsonBody: { success: false, error: 'Milestone ID is required' } };
+    context.res = { status: 400, body: { success: false, error: 'Milestone ID is required' } };
+    return;
   }
 
   try {
@@ -233,46 +248,19 @@ async function deleteMilestone(request: HttpRequest, context: InvocationContext)
 
       // Check center access
       if (!checkCenterAccess(user, centerId)) {
-        return { status: 403, jsonBody: { success: false, error: 'Access denied to this milestone' } };
+        context.res = { status: 403, body: { success: false, error: 'Access denied to this milestone' } };
+        return;
       }
 
       await milestonesTable.deleteEntity(entity.partitionKey, milestoneId);
 
-      return { status: 200, jsonBody: { success: true, message: 'Milestone deleted successfully' } };
+      context.res = { status: 200, body: { success: true, message: 'Milestone deleted successfully' } };
+      return;
     }
 
-    return { status: 404, jsonBody: { success: false, error: 'Milestone not found' } };
+    context.res = { status: 404, body: { success: false, error: 'Milestone not found' } };
   } catch (error) {
-    context.error('Error deleting milestone:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to delete milestone' } };
+    context.log.error('Error deleting milestone:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to delete milestone' } };
   }
-}
-
-// Register functions
-app.http('getStudentMilestones', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'students/{studentId}/milestones',
-  handler: getStudentMilestones,
-});
-
-app.http('createMilestone', {
-  methods: ['POST'],
-  authLevel: 'anonymous',
-  route: 'milestones',
-  handler: createMilestone,
-});
-
-app.http('updateMilestone', {
-  methods: ['PUT'],
-  authLevel: 'anonymous',
-  route: 'milestones/{id}',
-  handler: updateMilestone,
-});
-
-app.http('deleteMilestone', {
-  methods: ['DELETE'],
-  authLevel: 'anonymous',
-  route: 'milestones/{id}',
-  handler: deleteMilestone,
-});
+};

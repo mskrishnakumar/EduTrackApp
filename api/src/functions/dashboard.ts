@@ -1,13 +1,14 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { AzureFunction, Context, HttpRequest } from '@azure/functions';
 import { verifyAuth, getQueryCenterId } from '../middleware/auth';
 import { getTableClient, TABLES } from '../services/tableStorage';
-import { StudentEntity, MilestoneEntity, ProgramEntity, AttendanceByDateEntity, ApiResponse, DashboardStats, RecentMilestone, ProgramEnrollment, Milestone } from '../types';
+import { StudentEntity, MilestoneEntity, ProgramEntity, AttendanceByDateEntity, ApiResponse, DashboardStats, RecentMilestone, ProgramEnrollment } from '../types';
 
 // GET /api/dashboard/stats - Get dashboard statistics
-async function getDashboardStats(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const getDashboardStats: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
@@ -166,31 +167,31 @@ async function getDashboardStats(request: HttpRequest, context: InvocationContex
       data: stats,
     };
 
-    return { status: 200, jsonBody: response };
+    context.res = { status: 200, body: response };
   } catch (error) {
-    context.error('Error fetching dashboard stats:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to fetch dashboard stats' } };
+    context.log.error('Error fetching dashboard stats:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to fetch dashboard stats' } };
   }
-}
+};
 
 // GET /api/analytics/progress - Get progress data for charts
-async function getProgressAnalytics(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const getProgressAnalytics: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
   const queryCenterId = getQueryCenterId(user);
-  const url = new URL(request.url);
 
   // Get date range (default to last 6 months)
   const endDate = new Date();
   const startDate = new Date();
   startDate.setMonth(startDate.getMonth() - 6);
 
-  const startDateParam = url.searchParams.get('startDate');
-  const endDateParam = url.searchParams.get('endDate');
+  const startDateParam = req.query.startDate;
+  const endDateParam = req.query.endDate;
 
   if (startDateParam) {
     startDate.setTime(new Date(startDateParam).getTime());
@@ -328,24 +329,9 @@ async function getProgressAnalytics(request: HttpRequest, context: InvocationCon
       },
     };
 
-    return { status: 200, jsonBody: response };
+    context.res = { status: 200, body: response };
   } catch (error) {
-    context.error('Error fetching analytics:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to fetch analytics' } };
+    context.log.error('Error fetching analytics:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to fetch analytics' } };
   }
-}
-
-// Register functions
-app.http('getDashboardStats', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'dashboard/stats',
-  handler: getDashboardStats,
-});
-
-app.http('getProgressAnalytics', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'analytics/progress',
-  handler: getProgressAnalytics,
-});
+};

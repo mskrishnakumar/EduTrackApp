@@ -1,13 +1,14 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { AzureFunction, Context, HttpRequest } from '@azure/functions';
 import { verifyAuth } from '../middleware/auth';
 import { getTableClient, TABLES, entityToObject } from '../services/tableStorage';
 import { User, UserEntity, ApiResponse, CenterEntity } from '../types';
 
 // GET /api/users/me - Get current user profile
-async function getCurrentUser(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const getCurrentUser: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
@@ -47,7 +48,7 @@ async function getCurrentUser(request: HttpRequest, context: InvocationContext):
       data: userData,
     };
 
-    return { status: 200, jsonBody: response };
+    context.res = { status: 200, body: response };
   } catch (error: unknown) {
     // If user not found in table, return the auth user data
     if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 404) {
@@ -62,25 +63,27 @@ async function getCurrentUser(request: HttpRequest, context: InvocationContext):
         updatedAt: new Date().toISOString(),
       };
 
-      return { status: 200, jsonBody: { success: true, data: userData } };
+      context.res = { status: 200, body: { success: true, data: userData } };
+      return;
     }
 
-    context.error('Error fetching user:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to fetch user profile' } };
+    context.log.error('Error fetching user:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to fetch user profile' } };
   }
-}
+};
 
 // PUT /api/users/me - Update current user profile
-async function updateCurrentUser(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const updateCurrentUser: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
 
   try {
-    const body = await request.json() as { displayName?: string };
+    const body = req.body as { displayName?: string };
     const usersTable = getTableClient(TABLES.USERS);
 
     // Get existing user
@@ -142,24 +145,9 @@ async function updateCurrentUser(request: HttpRequest, context: InvocationContex
       data: userData,
     };
 
-    return { status: 200, jsonBody: response };
+    context.res = { status: 200, body: response };
   } catch (error) {
-    context.error('Error updating user:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to update user profile' } };
+    context.log.error('Error updating user:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to update user profile' } };
   }
-}
-
-// Register functions
-app.http('getCurrentUser', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'users/me',
-  handler: getCurrentUser,
-});
-
-app.http('updateCurrentUser', {
-  methods: ['PUT'],
-  authLevel: 'anonymous',
-  route: 'users/me',
-  handler: updateCurrentUser,
-});
+};

@@ -1,22 +1,23 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { AzureFunction, Context, HttpRequest } from '@azure/functions';
 import { verifyAuth, checkCenterAccess, getQueryCenterId } from '../middleware/auth';
 import { getTableClient, TABLES, entityToObject } from '../services/tableStorage';
 import { AttendanceRecord, AttendanceByDateEntity, AttendanceByStudentEntity, MarkAttendanceRequest, ApiResponse, StudentEntity } from '../types';
 
 // GET /api/attendance - Get attendance by date or student
-async function getAttendance(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const getAttendance: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
-  const url = new URL(request.url);
-  const date = url.searchParams.get('date');
-  const studentId = url.searchParams.get('studentId');
+  const date = req.query.date;
+  const studentId = req.query.studentId;
 
   if (!date && !studentId) {
-    return { status: 400, jsonBody: { success: false, error: 'Either date or studentId parameter is required' } };
+    context.res = { status: 400, body: { success: false, error: 'Either date or studentId parameter is required' } };
+    return;
   }
 
   try {
@@ -77,11 +78,13 @@ async function getAttendance(request: HttpRequest, context: InvocationContext): 
       }
 
       if (!studentCenterId) {
-        return { status: 404, jsonBody: { success: false, error: 'Student not found' } };
+        context.res = { status: 404, body: { success: false, error: 'Student not found' } };
+        return;
       }
 
       if (!checkCenterAccess(user, studentCenterId)) {
-        return { status: 403, jsonBody: { success: false, error: 'Access denied to this student' } };
+        context.res = { status: 403, body: { success: false, error: 'Access denied to this student' } };
+        return;
       }
 
       // Get attendance history
@@ -109,33 +112,36 @@ async function getAttendance(request: HttpRequest, context: InvocationContext): 
       data: records,
     };
 
-    return { status: 200, jsonBody: response };
+    context.res = { status: 200, body: response };
   } catch (error) {
-    context.error('Error fetching attendance:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to fetch attendance' } };
+    context.log.error('Error fetching attendance:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to fetch attendance' } };
   }
-}
+};
 
 // POST /api/attendance - Mark attendance (batch)
-async function markAttendance(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const markAttendance: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
 
   try {
-    const body = await request.json() as MarkAttendanceRequest;
+    const body = req.body as MarkAttendanceRequest;
 
     // Validate required fields
     if (!body.date || !body.records || !Array.isArray(body.records) || body.records.length === 0) {
-      return { status: 400, jsonBody: { success: false, error: 'Date and attendance records are required' } };
+      context.res = { status: 400, body: { success: false, error: 'Date and attendance records are required' } };
+      return;
     }
 
     // Validate date format (YYYY-MM-DD)
     if (!/^\d{4}-\d{2}-\d{2}$/.test(body.date)) {
-      return { status: 400, jsonBody: { success: false, error: 'Invalid date format. Use YYYY-MM-DD' } };
+      context.res = { status: 400, body: { success: false, error: 'Invalid date format. Use YYYY-MM-DD' } };
+      return;
     }
 
     const attendanceByDateTable = getTableClient(TABLES.ATTENDANCE_BY_DATE);
@@ -212,7 +218,7 @@ async function markAttendance(request: HttpRequest, context: InvocationContext):
           centerId: studentCenterId,
         });
       } catch (recordError) {
-        context.error(`Error processing attendance for student ${record.studentId}:`, recordError);
+        context.log.error(`Error processing attendance for student ${record.studentId}:`, recordError);
         errors.push(`Failed to process student ${record.studentId}`);
       }
     }
@@ -225,23 +231,23 @@ async function markAttendance(request: HttpRequest, context: InvocationContext):
       },
     };
 
-    return { status: 200, jsonBody: response };
+    context.res = { status: 200, body: response };
   } catch (error) {
-    context.error('Error marking attendance:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to mark attendance' } };
+    context.log.error('Error marking attendance:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to mark attendance' } };
   }
-}
+};
 
 // GET /api/attendance/students - Get students with today's attendance status
-async function getStudentsForAttendance(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const getStudentsForAttendance: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
-  const url = new URL(request.url);
-  const date = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
+  const date = req.query.date || new Date().toISOString().split('T')[0];
 
   try {
     const studentsTable = getTableClient(TABLES.STUDENTS);
@@ -315,31 +321,9 @@ async function getStudentsForAttendance(request: HttpRequest, context: Invocatio
       data: students,
     };
 
-    return { status: 200, jsonBody: response };
+    context.res = { status: 200, body: response };
   } catch (error) {
-    context.error('Error fetching students for attendance:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to fetch students' } };
+    context.log.error('Error fetching students for attendance:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to fetch students' } };
   }
-}
-
-// Register functions
-app.http('getAttendance', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'attendance',
-  handler: getAttendance,
-});
-
-app.http('markAttendance', {
-  methods: ['POST'],
-  authLevel: 'anonymous',
-  route: 'attendance',
-  handler: markAttendance,
-});
-
-app.http('getStudentsForAttendance', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'attendance/students',
-  handler: getStudentsForAttendance,
-});
+};

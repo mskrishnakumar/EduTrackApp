@@ -1,8 +1,9 @@
-// Import all function modules to register them with Azure Functions
-import './students';
-import './milestones';
-import './programs';
-import './attendance';
-import './dashboard';
-import './users';
-import './centers';
+// Export all Azure Functions for v3
+// Each function is discovered via its own function.json file
+export * from './students';
+export * from './programs';
+export * from './milestones';
+export * from './attendance';
+export * from './dashboard';
+export * from './users';
+export * from './centers';

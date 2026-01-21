@@ -1,4 +1,4 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { AzureFunction, Context, HttpRequest } from '@azure/functions';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyAuth } from '../middleware/auth';
 import { getTableClient, TABLES, entityToObject } from '../services/tableStorage';
@@ -16,17 +16,19 @@ function mapEntityToCenter(entity: CenterEntity): Center {
 }
 
 // GET /api/centers - List all centers
-async function getCenters(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const getCenters: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
 
   // Only admins can list all centers
   if (user.role !== 'admin') {
-    return { status: 403, jsonBody: { success: false, error: 'Only admins can list centers' } };
+    context.res = { status: 403, body: { success: false, error: 'Only admins can list centers' } };
+    return;
   }
 
   try {
@@ -68,30 +70,33 @@ async function getCenters(request: HttpRequest, context: InvocationContext): Pro
       data: centers,
     };
 
-    return { status: 200, jsonBody: response };
+    context.res = { status: 200, body: response };
   } catch (error) {
-    context.error('Error fetching centers:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to fetch centers' } };
+    context.log.error('Error fetching centers:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to fetch centers' } };
   }
-}
+};
 
 // GET /api/centers/{id} - Get single center
-async function getCenter(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const getCenter: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
-  const centerId = request.params.id;
+  const centerId = context.bindingData.id;
 
   if (!centerId) {
-    return { status: 400, jsonBody: { success: false, error: 'Center ID is required' } };
+    context.res = { status: 400, body: { success: false, error: 'Center ID is required' } };
+    return;
   }
 
   // Coordinators can only view their own center
   if (user.role === 'coordinator' && user.centerId !== centerId) {
-    return { status: 403, jsonBody: { success: false, error: 'Access denied to this center' } };
+    context.res = { status: 403, body: { success: false, error: 'Access denied to this center' } };
+    return;
   }
 
   try {
@@ -116,36 +121,40 @@ async function getCenter(request: HttpRequest, context: InvocationContext): Prom
       data: { ...center, studentCount },
     };
 
-    return { status: 200, jsonBody: response };
+    context.res = { status: 200, body: response };
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 404) {
-      return { status: 404, jsonBody: { success: false, error: 'Center not found' } };
+      context.res = { status: 404, body: { success: false, error: 'Center not found' } };
+      return;
     }
-    context.error('Error fetching center:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to fetch center' } };
+    context.log.error('Error fetching center:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to fetch center' } };
   }
-}
+};
 
 // POST /api/centers - Create center (admin only)
-async function createCenter(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const createCenter: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
 
   // Only admins can create centers
   if (user.role !== 'admin') {
-    return { status: 403, jsonBody: { success: false, error: 'Only admins can create centers' } };
+    context.res = { status: 403, body: { success: false, error: 'Only admins can create centers' } };
+    return;
   }
 
   try {
-    const body = await request.json() as { name: string; location?: string };
+    const body = req.body as { name: string; location?: string };
 
     // Validate required fields
     if (!body.name) {
-      return { status: 400, jsonBody: { success: false, error: 'Center name is required' } };
+      context.res = { status: 400, body: { success: false, error: 'Center name is required' } };
+      return;
     }
 
     const centerId = uuidv4();
@@ -166,35 +175,38 @@ async function createCenter(request: HttpRequest, context: InvocationContext): P
 
     const center = mapEntityToCenter(centerEntity);
 
-    return { status: 201, jsonBody: { success: true, data: center } };
+    context.res = { status: 201, body: { success: true, data: center } };
   } catch (error) {
-    context.error('Error creating center:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to create center' } };
+    context.log.error('Error creating center:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to create center' } };
   }
-}
+};
 
 // PUT /api/centers/{id} - Update center (admin only)
-async function updateCenter(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const updateCenter: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
 
   // Only admins can update centers
   if (user.role !== 'admin') {
-    return { status: 403, jsonBody: { success: false, error: 'Only admins can update centers' } };
+    context.res = { status: 403, body: { success: false, error: 'Only admins can update centers' } };
+    return;
   }
 
-  const centerId = request.params.id;
+  const centerId = context.bindingData.id;
 
   if (!centerId) {
-    return { status: 400, jsonBody: { success: false, error: 'Center ID is required' } };
+    context.res = { status: 400, body: { success: false, error: 'Center ID is required' } };
+    return;
   }
 
   try {
-    const body = await request.json() as { name?: string; location?: string; isActive?: boolean };
+    const body = req.body as { name?: string; location?: string; isActive?: boolean };
     const centersTable = getTableClient(TABLES.CENTERS);
 
     // Get existing center
@@ -215,34 +227,38 @@ async function updateCenter(request: HttpRequest, context: InvocationContext): P
 
     const center = mapEntityToCenter(updatedEntity);
 
-    return { status: 200, jsonBody: { success: true, data: center } };
+    context.res = { status: 200, body: { success: true, data: center } };
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 404) {
-      return { status: 404, jsonBody: { success: false, error: 'Center not found' } };
+      context.res = { status: 404, body: { success: false, error: 'Center not found' } };
+      return;
     }
-    context.error('Error updating center:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to update center' } };
+    context.log.error('Error updating center:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to update center' } };
   }
-}
+};
 
 // DELETE /api/centers/{id} - Soft delete center (admin only)
-async function deleteCenter(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const deleteCenter: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
 
   // Only admins can delete centers
   if (user.role !== 'admin') {
-    return { status: 403, jsonBody: { success: false, error: 'Only admins can delete centers' } };
+    context.res = { status: 403, body: { success: false, error: 'Only admins can delete centers' } };
+    return;
   }
 
-  const centerId = request.params.id;
+  const centerId = context.bindingData.id;
 
   if (!centerId) {
-    return { status: 400, jsonBody: { success: false, error: 'Center ID is required' } };
+    context.res = { status: 400, body: { success: false, error: 'Center ID is required' } };
+    return;
   }
 
   try {
@@ -262,48 +278,13 @@ async function deleteCenter(request: HttpRequest, context: InvocationContext): P
 
     await centersTable.updateEntity(updatedEntity, 'Replace');
 
-    return { status: 200, jsonBody: { success: true, message: 'Center deleted successfully' } };
+    context.res = { status: 200, body: { success: true, message: 'Center deleted successfully' } };
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 404) {
-      return { status: 404, jsonBody: { success: false, error: 'Center not found' } };
+      context.res = { status: 404, body: { success: false, error: 'Center not found' } };
+      return;
     }
-    context.error('Error deleting center:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to delete center' } };
+    context.log.error('Error deleting center:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to delete center' } };
   }
-}
-
-// Register functions
-app.http('getCenters', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'centers',
-  handler: getCenters,
-});
-
-app.http('getCenter', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'centers/{id}',
-  handler: getCenter,
-});
-
-app.http('createCenter', {
-  methods: ['POST'],
-  authLevel: 'anonymous',
-  route: 'centers',
-  handler: createCenter,
-});
-
-app.http('updateCenter', {
-  methods: ['PUT'],
-  authLevel: 'anonymous',
-  route: 'centers/{id}',
-  handler: updateCenter,
-});
-
-app.http('deleteCenter', {
-  methods: ['DELETE'],
-  authLevel: 'anonymous',
-  route: 'centers/{id}',
-  handler: deleteCenter,
-});
+};

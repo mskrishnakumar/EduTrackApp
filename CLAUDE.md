@@ -185,18 +185,17 @@ The project is designed for Azure Static Web Apps which:
 
 ⚠️ **Critical**: Backend vars are DIFFERENT from frontend vars. The service key is secret and must never be exposed to frontend.
 
-#### Azure Functions v4 + TypeScript Configuration
+#### Azure Functions v3 + TypeScript Configuration
 
-For Azure Functions v4 with TypeScript to work on Azure SWA:
+The project uses Azure Functions v3 (NOT v4) for better Azure SWA compatibility:
 
 1. **package.json** must have:
    ```json
    {
-     "type": "commonjs",
      "main": "dist/src/functions/index.js",
      "engines": { "node": ">=18.0.0" },
      "dependencies": {
-       "@azure/functions": "^4.5.0"
+       "@azure/functions": "^3.5.0"
      }
    }
    ```
@@ -207,7 +206,7 @@ For Azure Functions v4 with TypeScript to work on Azure SWA:
      "version": "2.0",
      "extensionBundle": {
        "id": "Microsoft.Azure.Functions.ExtensionBundle",
-       "version": "[4.*, 5.0.0)"
+       "version": "[3.*, 4.0.0)"
      },
      "extensions": {
        "http": {
@@ -217,14 +216,56 @@ For Azure Functions v4 with TypeScript to work on Azure SWA:
    }
    ```
 
-3. **src/functions/index.ts** - Must import all function files:
-   ```typescript
-   import './students';
-   import './programs';
-   // ... etc
+3. **Function Structure (v3 pattern)**: Each function has its own folder with function.json:
+   ```
+   api/
+   ├── getStudents/
+   │   └── function.json       # Defines route, method, and scriptFile
+   ├── createStudent/
+   │   └── function.json
+   ├── src/
+   │   └── functions/
+   │       ├── students.ts     # Exports: getStudents, createStudent, etc.
+   │       └── index.ts        # Re-exports all functions
+   └── dist/                   # Compiled JS output
    ```
 
-4. **tsconfig.json** - Output to `dist/`:
+4. **function.json example**:
+   ```json
+   {
+     "bindings": [
+       {
+         "authLevel": "anonymous",
+         "type": "httpTrigger",
+         "direction": "in",
+         "name": "req",
+         "methods": ["get"],
+         "route": "students"
+       },
+       {
+         "type": "http",
+         "direction": "out",
+         "name": "res"
+       }
+     ],
+     "scriptFile": "../dist/src/functions/students.js",
+     "entryPoint": "getStudents"
+   }
+   ```
+
+5. **Handler function signature (v3)**:
+   ```typescript
+   import { AzureFunction, Context, HttpRequest } from '@azure/functions';
+
+   export const getStudents: AzureFunction = async function (
+     context: Context,
+     req: HttpRequest
+   ): Promise<void> {
+     context.res = { status: 200, body: { ... } };
+   };
+   ```
+
+6. **tsconfig.json** - Output to `dist/`:
    ```json
    {
      "compilerOptions": {

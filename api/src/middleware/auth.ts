@@ -1,4 +1,4 @@
-import { HttpRequest, InvocationContext } from '@azure/functions';
+import { Context, HttpRequest } from '@azure/functions';
 import { createClient } from '@supabase/supabase-js';
 import { getTableClient, TABLES, entityToObject } from '../services/tableStorage';
 import { User, UserEntity } from '../types';
@@ -28,9 +28,9 @@ export interface AuthResult {
 
 export async function verifyAuth(
   request: HttpRequest,
-  context: InvocationContext
+  context: Context
 ): Promise<AuthResult> {
-  const authHeader = request.headers.get('authorization');
+  const authHeader = request.headers['authorization'] || request.headers['Authorization'];
 
   if (!authHeader?.startsWith('Bearer ')) {
     return {
@@ -58,7 +58,7 @@ export async function verifyAuth(
   }
 
   if (!supabase) {
-    context.warn('Supabase not configured. Using mock authentication.');
+    context.log.warn('Supabase not configured. Using mock authentication.');
     return {
       success: true,
       user: {
@@ -103,7 +103,7 @@ export async function verifyAuth(
       };
     } catch (profileError) {
       // If profile doesn't exist, create default admin profile
-      context.warn('User profile not found in Table Storage, using default');
+      context.log.warn('User profile not found in Table Storage, using default');
       return {
         success: true,
         user: {
@@ -117,7 +117,7 @@ export async function verifyAuth(
       };
     }
   } catch (error) {
-    context.error('Authentication error:', error);
+    context.log.error('Authentication error:', error);
     return {
       success: false,
       error: 'Authentication failed',

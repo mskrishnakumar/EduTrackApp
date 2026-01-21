@@ -1,4 +1,4 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { AzureFunction, Context, HttpRequest } from '@azure/functions';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyAuth } from '../middleware/auth';
 import { getTableClient, TABLES, entityToObject } from '../services/tableStorage';
@@ -18,10 +18,11 @@ function mapEntityToProgram(entity: ProgramEntity): Program {
 }
 
 // GET /api/programs - List all programs
-async function getPrograms(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const getPrograms: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   try {
@@ -62,24 +63,26 @@ async function getPrograms(request: HttpRequest, context: InvocationContext): Pr
       data: programs,
     };
 
-    return { status: 200, jsonBody: response };
+    context.res = { status: 200, body: response };
   } catch (error) {
-    context.error('Error fetching programs:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to fetch programs' } };
+    context.log.error('Error fetching programs:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to fetch programs' } };
   }
-}
+};
 
 // GET /api/programs/{id} - Get single program
-async function getProgram(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const getProgram: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
-  const programId = request.params.id;
+  const programId = context.bindingData.id;
 
   if (!programId) {
-    return { status: 400, jsonBody: { success: false, error: 'Program ID is required' } };
+    context.res = { status: 400, body: { success: false, error: 'Program ID is required' } };
+    return;
   }
 
   try {
@@ -100,31 +103,34 @@ async function getProgram(request: HttpRequest, context: InvocationContext): Pro
     }
     program.studentCount = studentCount;
 
-    return { status: 200, jsonBody: { success: true, data: program } };
+    context.res = { status: 200, body: { success: true, data: program } };
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 404) {
-      return { status: 404, jsonBody: { success: false, error: 'Program not found' } };
+      context.res = { status: 404, body: { success: false, error: 'Program not found' } };
+      return;
     }
-    context.error('Error fetching program:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to fetch program' } };
+    context.log.error('Error fetching program:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to fetch program' } };
   }
-}
+};
 
 // POST /api/programs - Create program
-async function createProgram(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const createProgram: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
 
   try {
-    const body = await request.json() as CreateProgramRequest;
+    const body = req.body as CreateProgramRequest;
 
     // Validate required fields
     if (!body.name) {
-      return { status: 400, jsonBody: { success: false, error: 'Program name is required' } };
+      context.res = { status: 400, body: { success: false, error: 'Program name is required' } };
+      return;
     }
 
     const programId = uuidv4();
@@ -146,28 +152,30 @@ async function createProgram(request: HttpRequest, context: InvocationContext): 
 
     const program = mapEntityToProgram(programEntity);
 
-    return { status: 201, jsonBody: { success: true, data: program } };
+    context.res = { status: 201, body: { success: true, data: program } };
   } catch (error) {
-    context.error('Error creating program:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to create program' } };
+    context.log.error('Error creating program:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to create program' } };
   }
-}
+};
 
 // PUT /api/programs/{id} - Update program
-async function updateProgram(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const updateProgram: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
-  const programId = request.params.id;
+  const programId = context.bindingData.id;
 
   if (!programId) {
-    return { status: 400, jsonBody: { success: false, error: 'Program ID is required' } };
+    context.res = { status: 400, body: { success: false, error: 'Program ID is required' } };
+    return;
   }
 
   try {
-    const body = await request.json() as UpdateProgramRequest;
+    const body = req.body as UpdateProgramRequest;
     const programsTable = getTableClient(TABLES.PROGRAMS);
 
     // Get existing program
@@ -188,27 +196,30 @@ async function updateProgram(request: HttpRequest, context: InvocationContext): 
 
     const program = mapEntityToProgram(updatedEntity);
 
-    return { status: 200, jsonBody: { success: true, data: program } };
+    context.res = { status: 200, body: { success: true, data: program } };
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 404) {
-      return { status: 404, jsonBody: { success: false, error: 'Program not found' } };
+      context.res = { status: 404, body: { success: false, error: 'Program not found' } };
+      return;
     }
-    context.error('Error updating program:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to update program' } };
+    context.log.error('Error updating program:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to update program' } };
   }
-}
+};
 
 // DELETE /api/programs/{id} - Soft delete program
-async function deleteProgram(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const deleteProgram: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
-  const programId = request.params.id;
+  const programId = context.bindingData.id;
 
   if (!programId) {
-    return { status: 400, jsonBody: { success: false, error: 'Program ID is required' } };
+    context.res = { status: 400, body: { success: false, error: 'Program ID is required' } };
+    return;
   }
 
   try {
@@ -228,48 +239,13 @@ async function deleteProgram(request: HttpRequest, context: InvocationContext): 
 
     await programsTable.updateEntity(updatedEntity, 'Replace');
 
-    return { status: 200, jsonBody: { success: true, message: 'Program deleted successfully' } };
+    context.res = { status: 200, body: { success: true, message: 'Program deleted successfully' } };
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 404) {
-      return { status: 404, jsonBody: { success: false, error: 'Program not found' } };
+      context.res = { status: 404, body: { success: false, error: 'Program not found' } };
+      return;
     }
-    context.error('Error deleting program:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to delete program' } };
+    context.log.error('Error deleting program:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to delete program' } };
   }
-}
-
-// Register functions
-app.http('getPrograms', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'programs',
-  handler: getPrograms,
-});
-
-app.http('getProgram', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'programs/{id}',
-  handler: getProgram,
-});
-
-app.http('createProgram', {
-  methods: ['POST'],
-  authLevel: 'anonymous',
-  route: 'programs',
-  handler: createProgram,
-});
-
-app.http('updateProgram', {
-  methods: ['PUT'],
-  authLevel: 'anonymous',
-  route: 'programs/{id}',
-  handler: updateProgram,
-});
-
-app.http('deleteProgram', {
-  methods: ['DELETE'],
-  authLevel: 'anonymous',
-  route: 'programs/{id}',
-  handler: deleteProgram,
-});
+};

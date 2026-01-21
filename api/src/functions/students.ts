@@ -1,4 +1,4 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { AzureFunction, Context, HttpRequest } from '@azure/functions';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyAuth, checkCenterAccess, getQueryCenterId, AuthenticatedUser } from '../middleware/auth';
 import { getTableClient, TABLES, entityToObject, createTimestampRowKey } from '../services/tableStorage';
@@ -23,18 +23,18 @@ function mapEntityToStudent(entity: StudentEntity, centerId: string): Student {
 }
 
 // GET /api/students - List all students
-async function getStudents(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const getStudents: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
-  const url = new URL(request.url);
-  const search = url.searchParams.get('search')?.toLowerCase() || '';
-  const programId = url.searchParams.get('programId') || '';
-  const page = parseInt(url.searchParams.get('page') || '1');
-  const pageSize = parseInt(url.searchParams.get('pageSize') || '50');
+  const search = (req.query.search || '').toLowerCase();
+  const programId = req.query.programId || '';
+  const page = parseInt(req.query.page || '1');
+  const pageSize = parseInt(req.query.pageSize || '50');
 
   try {
     const studentsTable = getTableClient(TABLES.STUDENTS);
@@ -84,25 +84,27 @@ async function getStudents(request: HttpRequest, context: InvocationContext): Pr
       },
     };
 
-    return { status: 200, jsonBody: response };
+    context.res = { status: 200, body: response };
   } catch (error) {
-    context.error('Error fetching students:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to fetch students' } };
+    context.log.error('Error fetching students:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to fetch students' } };
   }
-}
+};
 
 // GET /api/students/{id} - Get single student
-async function getStudent(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const getStudent: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
-  const studentId = request.params.id;
+  const studentId = context.bindingData.id;
 
   if (!studentId) {
-    return { status: 400, jsonBody: { success: false, error: 'Student ID is required' } };
+    context.res = { status: 400, body: { success: false, error: 'Student ID is required' } };
+    return;
   }
 
   try {
@@ -118,36 +120,40 @@ async function getStudent(request: HttpRequest, context: InvocationContext): Pro
 
       // Check center access
       if (!checkCenterAccess(user, centerId)) {
-        return { status: 403, jsonBody: { success: false, error: 'Access denied to this student' } };
+        context.res = { status: 403, body: { success: false, error: 'Access denied to this student' } };
+        return;
       }
 
       const student = mapEntityToStudent(entityToObject<StudentEntity>(entity), centerId);
 
-      return { status: 200, jsonBody: { success: true, data: student } };
+      context.res = { status: 200, body: { success: true, data: student } };
+      return;
     }
 
-    return { status: 404, jsonBody: { success: false, error: 'Student not found' } };
+    context.res = { status: 404, body: { success: false, error: 'Student not found' } };
   } catch (error) {
-    context.error('Error fetching student:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to fetch student' } };
+    context.log.error('Error fetching student:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to fetch student' } };
   }
-}
+};
 
 // POST /api/students - Create student
-async function createStudent(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const createStudent: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
 
   try {
-    const body = await request.json() as CreateStudentRequest;
+    const body = req.body as CreateStudentRequest;
 
     // Validate required fields
     if (!body.name || !body.age || !body.programId || !body.enrollmentDate) {
-      return { status: 400, jsonBody: { success: false, error: 'Missing required fields' } };
+      context.res = { status: 400, body: { success: false, error: 'Missing required fields' } };
+      return;
     }
 
     // Determine center ID
@@ -156,13 +162,15 @@ async function createStudent(request: HttpRequest, context: InvocationContext): 
       if (user.role === 'coordinator' && user.centerId) {
         centerId = user.centerId;
       } else {
-        return { status: 400, jsonBody: { success: false, error: 'Center ID is required' } };
+        context.res = { status: 400, body: { success: false, error: 'Center ID is required' } };
+        return;
       }
     }
 
     // Check center access
     if (!checkCenterAccess(user, centerId)) {
-      return { status: 403, jsonBody: { success: false, error: 'Access denied to this center' } };
+      context.res = { status: 403, body: { success: false, error: 'Access denied to this center' } };
+      return;
     }
 
     // Get program name
@@ -197,29 +205,31 @@ async function createStudent(request: HttpRequest, context: InvocationContext): 
 
     const student = mapEntityToStudent(studentEntity, centerId);
 
-    return { status: 201, jsonBody: { success: true, data: student } };
+    context.res = { status: 201, body: { success: true, data: student } };
   } catch (error) {
-    context.error('Error creating student:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to create student' } };
+    context.log.error('Error creating student:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to create student' } };
   }
-}
+};
 
 // PUT /api/students/{id} - Update student
-async function updateStudent(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const updateStudent: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
-  const studentId = request.params.id;
+  const studentId = context.bindingData.id;
 
   if (!studentId) {
-    return { status: 400, jsonBody: { success: false, error: 'Student ID is required' } };
+    context.res = { status: 400, body: { success: false, error: 'Student ID is required' } };
+    return;
   }
 
   try {
-    const body = await request.json() as UpdateStudentRequest;
+    const body = req.body as UpdateStudentRequest;
     const studentsTable = getTableClient(TABLES.STUDENTS);
 
     // Find student
@@ -232,7 +242,8 @@ async function updateStudent(request: HttpRequest, context: InvocationContext): 
 
       // Check center access
       if (!checkCenterAccess(user, centerId)) {
-        return { status: 403, jsonBody: { success: false, error: 'Access denied to this student' } };
+        context.res = { status: 403, body: { success: false, error: 'Access denied to this student' } };
+        return;
       }
 
       // Update fields
@@ -252,28 +263,31 @@ async function updateStudent(request: HttpRequest, context: InvocationContext): 
 
       const student = mapEntityToStudent(updatedEntity, centerId);
 
-      return { status: 200, jsonBody: { success: true, data: student } };
+      context.res = { status: 200, body: { success: true, data: student } };
+      return;
     }
 
-    return { status: 404, jsonBody: { success: false, error: 'Student not found' } };
+    context.res = { status: 404, body: { success: false, error: 'Student not found' } };
   } catch (error) {
-    context.error('Error updating student:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to update student' } };
+    context.log.error('Error updating student:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to update student' } };
   }
-}
+};
 
 // DELETE /api/students/{id} - Soft delete student
-async function deleteStudent(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const authResult = await verifyAuth(request, context);
+export const deleteStudent: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const authResult = await verifyAuth(req, context);
   if (!authResult.success) {
-    return { status: authResult.status, jsonBody: { success: false, error: authResult.error } };
+    context.res = { status: authResult.status, body: { success: false, error: authResult.error } };
+    return;
   }
 
   const user = authResult.user!;
-  const studentId = request.params.id;
+  const studentId = context.bindingData.id;
 
   if (!studentId) {
-    return { status: 400, jsonBody: { success: false, error: 'Student ID is required' } };
+    context.res = { status: 400, body: { success: false, error: 'Student ID is required' } };
+    return;
   }
 
   try {
@@ -289,7 +303,8 @@ async function deleteStudent(request: HttpRequest, context: InvocationContext): 
 
       // Check center access
       if (!checkCenterAccess(user, centerId)) {
-        return { status: 403, jsonBody: { success: false, error: 'Access denied to this student' } };
+        context.res = { status: 403, body: { success: false, error: 'Access denied to this student' } };
+        return;
       }
 
       // Soft delete - set isActive to false
@@ -303,48 +318,13 @@ async function deleteStudent(request: HttpRequest, context: InvocationContext): 
 
       await studentsTable.updateEntity(updatedEntity, 'Replace');
 
-      return { status: 200, jsonBody: { success: true, message: 'Student deleted successfully' } };
+      context.res = { status: 200, body: { success: true, message: 'Student deleted successfully' } };
+      return;
     }
 
-    return { status: 404, jsonBody: { success: false, error: 'Student not found' } };
+    context.res = { status: 404, body: { success: false, error: 'Student not found' } };
   } catch (error) {
-    context.error('Error deleting student:', error);
-    return { status: 500, jsonBody: { success: false, error: 'Failed to delete student' } };
+    context.log.error('Error deleting student:', error);
+    context.res = { status: 500, body: { success: false, error: 'Failed to delete student' } };
   }
-}
-
-// Register functions
-app.http('getStudents', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'students',
-  handler: getStudents,
-});
-
-app.http('getStudent', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'students/{id}',
-  handler: getStudent,
-});
-
-app.http('createStudent', {
-  methods: ['POST'],
-  authLevel: 'anonymous',
-  route: 'students',
-  handler: createStudent,
-});
-
-app.http('updateStudent', {
-  methods: ['PUT'],
-  authLevel: 'anonymous',
-  route: 'students/{id}',
-  handler: updateStudent,
-});
-
-app.http('deleteStudent', {
-  methods: ['DELETE'],
-  authLevel: 'anonymous',
-  route: 'students/{id}',
-  handler: deleteStudent,
-});
+};
