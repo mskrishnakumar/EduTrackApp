@@ -2,7 +2,8 @@
   "name": "edutrack-api",
   "version": "1.0.0",
   "description": "EduTrack Azure Functions API",
-  "main": "dist/src/functions/*.js",
+  "type": "commonjs",
+  "main": "dist/src/functions/index.js",
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
