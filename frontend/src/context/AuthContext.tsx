@@ -3,6 +3,7 @@ import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabase';
 import { User } from '../types';
 import { api } from '../services/api';
+import { setAuthToken } from '../services/dataService';
 
 interface AuthContextType {
   user: User | null;
@@ -65,6 +66,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setSupabaseUser(session?.user ?? null);
+      // Set auth token for API calls
+      setAuthToken(session?.access_token ?? null);
       if (session?.user && session?.access_token) {
         loadUserProfile(session.user.id, session.access_token);
       } else {
@@ -77,6 +80,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (_event, session) => {
         setSession(session);
         setSupabaseUser(session?.user ?? null);
+        // Set auth token for API calls
+        setAuthToken(session?.access_token ?? null);
         if (session?.user && session?.access_token) {
           await loadUserProfile(session.user.id, session.access_token);
         } else {
@@ -108,6 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co') {
       // Development mode - mock sign out
       setUser(null);
+      setAuthToken(null);
       return;
     }
 
@@ -115,6 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setSupabaseUser(null);
     setSession(null);
+    setAuthToken(null);
   };
 
   const getToken = async (): Promise<string | null> => {
