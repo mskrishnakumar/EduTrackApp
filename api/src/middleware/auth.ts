@@ -131,8 +131,11 @@ export async function verifyAuth(
 
   try {
     // Decode token header to see the algorithm
+    // JWT uses base64url encoding, so we need to convert to standard base64
     const tokenParts = token.split('.');
-    const header = JSON.parse(Buffer.from(tokenParts[0], 'base64').toString());
+    const base64UrlHeader = tokenParts[0];
+    const base64Header = base64UrlHeader.replace(/-/g, '+').replace(/_/g, '/');
+    const header = JSON.parse(Buffer.from(base64Header, 'base64').toString());
     context.log('[Auth] Token header:', { alg: header.alg, kid: header.kid });
 
     let decoded: SupabaseJwtPayload;
