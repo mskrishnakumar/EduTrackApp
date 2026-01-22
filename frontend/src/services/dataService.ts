@@ -21,6 +21,7 @@ import type {
   CreateStudentRequest,
   UpdateStudentRequest,
   CreateMilestoneRequest,
+  UpdateMilestoneRequest,
   CreateProgramRequest,
   UpdateProgramRequest,
   MarkAttendanceRequest,
@@ -88,6 +89,13 @@ export async function createMilestone(data: CreateMilestoneRequest): Promise<Api
     return mockApi.milestones.create(data);
   }
   return api.post<Milestone>('/milestones', data, authToken);
+}
+
+export async function updateMilestone(id: string, data: UpdateMilestoneRequest): Promise<ApiResponse<Milestone>> {
+  if (USE_MOCK_API) {
+    return mockApi.milestones.update(id, data);
+  }
+  return api.put<Milestone>(`/milestones/${id}`, data, authToken);
 }
 
 export async function deleteMilestone(id: string): Promise<ApiResponse<void>> {
@@ -209,6 +217,7 @@ export const dataService = {
   milestones: {
     getByStudent: getStudentMilestones,
     create: createMilestone,
+    update: updateMilestone,
     delete: deleteMilestone,
   },
   programs: {

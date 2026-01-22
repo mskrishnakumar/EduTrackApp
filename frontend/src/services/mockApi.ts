@@ -11,6 +11,7 @@ import type {
   CreateStudentRequest,
   UpdateStudentRequest,
   CreateMilestoneRequest,
+  UpdateMilestoneRequest,
   CreateProgramRequest,
   UpdateProgramRequest,
   MarkAttendanceRequest,
@@ -192,6 +193,22 @@ export async function createMilestone(data: CreateMilestoneRequest): Promise<Api
   return { success: true, data: newMilestone };
 }
 
+export async function updateMilestone(id: string, data: UpdateMilestoneRequest): Promise<ApiResponse<Milestone>> {
+  await delay(MOCK_DELAY);
+
+  const index = milestones.findIndex((m) => m.id === id);
+  if (index === -1) {
+    return { success: false, error: 'Milestone not found' };
+  }
+
+  milestones[index] = {
+    ...milestones[index],
+    ...data,
+  };
+
+  return { success: true, data: milestones[index] };
+}
+
 export async function deleteMilestone(id: string): Promise<ApiResponse<void>> {
   await delay(MOCK_DELAY);
 
@@ -368,6 +385,7 @@ export const mockApi = {
   milestones: {
     getByStudent: getStudentMilestones,
     create: createMilestone,
+    update: updateMilestone,
     delete: deleteMilestone,
   },
   programs: {
