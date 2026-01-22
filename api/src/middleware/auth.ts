@@ -1,15 +1,26 @@
 import { Context, HttpRequest } from '@azure/functions';
 import * as jwt from 'jsonwebtoken';
+import jwksClient from 'jwks-rsa';
 import { getTableClient, TABLES, entityToObject } from '../services/tableStorage';
 import { UserEntity } from '../types';
 
-// Supabase JWT Secret - found in Supabase Dashboard > Settings > API > JWT Settings
-const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET || '';
+// Supabase URL for JWKS endpoint
+const supabaseUrl = process.env.SUPABASE_URL || '';
 
-// Log configuration status (not the actual values for security)
-console.log('[Auth] JWT config check:', {
-  hasJwtSecret: !!supabaseJwtSecret,
-  jwtSecretLength: supabaseJwtSecret.length,
+// Create JWKS client to fetch signing keys from Supabase
+const client = supabaseUrl
+  ? jwksClient({
+      jwksUri: `${supabaseUrl}/auth/v1/.well-known/jwks.json`,
+      cache: true,
+      cacheMaxAge: 600000, // 10 minutes
+      rateLimit: true,
+    })
+  : null;
+
+// Log configuration status
+console.log('[Auth] JWKS config check:', {
+  hasSupabaseUrl: !!supabaseUrl,
+  jwksUri: supabaseUrl ? `${supabaseUrl}/auth/v1/.well-known/jwks.json` : 'not configured',
 });
 
 export interface AuthenticatedUser {
@@ -26,6 +37,45 @@ export interface AuthResult {
   user?: AuthenticatedUser;
   error?: string;
   status?: number;
+}
+
+interface SupabaseJwtPayload {
+  sub: string;  // user id
+  email?: string;
+  role?: string;
+  aud?: string;
+  exp?: number;
+  iat?: number;
+}
+
+// Function to get signing key from JWKS
+function getKey(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback): void {
+  if (!client) {
+    callback(new Error('JWKS client not configured'));
+    return;
+  }
+
+  client.getSigningKey(header.kid, (err, key) => {
+    if (err) {
+      callback(err);
+      return;
+    }
+    const signingKey = key?.getPublicKey();
+    callback(null, signingKey);
+  });
+}
+
+// Promisified JWT verification using JWKS
+function verifyTokenWithJwks(token: string): Promise<SupabaseJwtPayload> {
+  return new Promise((resolve, reject) => {
+    jwt.verify(token, getKey, { algorithms: ['RS256'] }, (err, decoded) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(decoded as SupabaseJwtPayload);
+      }
+    });
+  });
 }
 
 export async function verifyAuth(
@@ -59,8 +109,8 @@ export async function verifyAuth(
     };
   }
 
-  if (!supabaseJwtSecret) {
-    context.log.warn('SUPABASE_JWT_SECRET not configured. Using mock authentication.');
+  if (!client) {
+    context.log.warn('SUPABASE_URL not configured. Using mock authentication.');
     return {
       success: true,
       user: {
@@ -75,21 +125,10 @@ export async function verifyAuth(
   }
 
   try {
-    // Verify the JWT token using the Supabase JWT secret
-    context.log('[Auth] Verifying JWT token...');
+    // Verify the JWT token using JWKS (RS256)
+    context.log('[Auth] Verifying JWT token with JWKS...');
 
-    interface SupabaseJwtPayload {
-      sub: string;  // user id
-      email?: string;
-      role?: string;
-      aud?: string;
-      exp?: number;
-      iat?: number;
-    }
-
-    const decoded = jwt.verify(token, supabaseJwtSecret, {
-      algorithms: ['HS256'],
-    }) as SupabaseJwtPayload;
+    const decoded = await verifyTokenWithJwks(token);
 
     if (!decoded.sub) {
       context.log.error('[Auth] Token missing sub (user id)');
