@@ -7,15 +7,24 @@ const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
 
 // Log configuration status (not the actual values for security)
+// Service role key typically starts with 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9' and is ~200+ chars
+// Anon key is shorter and different
 console.log('[Auth] Supabase config check:', {
   hasUrl: !!supabaseUrl,
   urlLength: supabaseUrl.length,
+  urlPrefix: supabaseUrl.substring(0, 30),
   hasServiceKey: !!supabaseServiceKey,
   serviceKeyLength: supabaseServiceKey.length,
+  serviceKeyPrefix: supabaseServiceKey.substring(0, 20),
 });
 
 const supabase = supabaseUrl && supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey)
+  ? createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
   : null;
 
 console.log('[Auth] Supabase client initialized:', !!supabase);
@@ -83,8 +92,9 @@ export async function verifyAuth(
   }
 
   try {
-    // Verify the JWT token with Supabase
-    context.log('[Auth] Verifying token with Supabase...');
+    // Verify the JWT token with Supabase Admin API
+    // Using auth.getUser() with the JWT token to verify it server-side
+    context.log('[Auth] Verifying token with Supabase Admin API...');
     const { data: { user: supabaseUser }, error } = await supabase.auth.getUser(token);
 
     if (error || !supabaseUser) {
