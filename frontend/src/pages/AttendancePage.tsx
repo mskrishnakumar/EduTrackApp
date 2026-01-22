@@ -3,19 +3,31 @@ import { format } from 'date-fns';
 import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import { Input } from '../components/common/Input';
+import { Select } from '../components/common/Select';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid';
 import { dataService } from '../services/dataService';
-import { Student, AttendanceRecord } from '../types';
+import { Student, AttendanceRecord, Program, Center } from '../types';
 
 interface AttendanceStudent {
   id: string;
   name: string;
+  programId: string;
+  programName: string;
+  centerId: string;
+  centerName: string;
   status: 'present' | 'absent' | null;
+  markedBy: string | null;
+  markedAt: string | null;
 }
 
 export function AttendancePage() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [students, setStudents] = useState<AttendanceStudent[]>([]);
+  const [allStudents, setAllStudents] = useState<AttendanceStudent[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [centers, setCenters] = useState<Center[]>([]);
+  const [selectedProgram, setSelectedProgram] = useState<string>('');
+  const [selectedCenter, setSelectedCenter] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,27 +36,50 @@ export function AttendancePage() {
     setLoading(true);
     setError(null);
     try {
-      // Fetch students and attendance for the selected date
-      const [studentsResponse, attendanceResponse] = await Promise.all([
+      // Fetch students, programs, centers, and attendance for the selected date
+      const [studentsResponse, programsResponse, centersResponse, attendanceResponse] = await Promise.all([
         dataService.students.getAll(),
+        dataService.programs.getAll(),
+        dataService.centers.getAll(),
         dataService.attendance.getByDate(selectedDate),
       ]);
 
+      if (programsResponse.success && programsResponse.data) {
+        setPrograms(programsResponse.data);
+      }
+
+      if (centersResponse.success && centersResponse.data) {
+        setCenters(centersResponse.data);
+      }
+
       if (studentsResponse.success && studentsResponse.data) {
-        const attendanceMap = new Map<string, 'present' | 'absent'>();
+        const attendanceMap = new Map<string, { status: 'present' | 'absent'; markedBy: string; markedAt: string }>();
         if (attendanceResponse.success && attendanceResponse.data) {
           attendanceResponse.data.forEach((record: AttendanceRecord) => {
-            attendanceMap.set(record.studentId, record.status);
+            attendanceMap.set(record.studentId, {
+              status: record.status,
+              markedBy: record.markedBy,
+              markedAt: record.markedAt,
+            });
           });
         }
 
-        const attendanceStudents: AttendanceStudent[] = studentsResponse.data.map((student: Student) => ({
-          id: student.id,
-          name: student.name,
-          status: attendanceMap.get(student.id) || null,
-        }));
+        const attendanceStudents: AttendanceStudent[] = studentsResponse.data.map((student: Student) => {
+          const attendance = attendanceMap.get(student.id);
+          return {
+            id: student.id,
+            name: student.name,
+            programId: student.programId,
+            programName: student.programName,
+            centerId: student.centerId,
+            centerName: student.centerName,
+            status: attendance?.status || null,
+            markedBy: attendance?.markedBy || null,
+            markedAt: attendance?.markedAt || null,
+          };
+        });
 
-        setStudents(attendanceStudents);
+        setAllStudents(attendanceStudents);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load attendance data');
@@ -53,13 +88,33 @@ export function AttendancePage() {
     }
   }, [selectedDate]);
 
+  // Filter students based on selected program and center
+  useEffect(() => {
+    let filtered = [...allStudents];
+
+    if (selectedProgram) {
+      filtered = filtered.filter(s => s.programId === selectedProgram);
+    }
+
+    if (selectedCenter) {
+      filtered = filtered.filter(s => s.centerId === selectedCenter);
+    }
+
+    setStudents(filtered);
+  }, [allStudents, selectedProgram, selectedCenter]);
+
   useEffect(() => {
     fetchAttendanceData();
   }, [fetchAttendanceData]);
 
   const handleStatusChange = (studentId: string, status: 'present' | 'absent') => {
+    const now = new Date().toISOString();
+    // Update both filtered students and all students
     setStudents(students.map((s) =>
-      s.id === studentId ? { ...s, status } : s
+      s.id === studentId ? { ...s, status, markedBy: 'Current User', markedAt: now } : s
+    ));
+    setAllStudents(allStudents.map((s) =>
+      s.id === studentId ? { ...s, status, markedBy: 'Current User', markedAt: now } : s
     ));
   };
 
@@ -123,18 +178,42 @@ export function AttendancePage() {
         </div>
       )}
 
-      {/* Date Selector & Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-        <Card>
-          <label className="block text-body font-medium text-text-primary mb-2">
-            Select Date
-          </label>
-          <Input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
+      {/* Filters */}
+      <Card className="mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-body font-medium text-text-primary mb-2">
+              Select Date
+            </label>
+            <Input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+            />
+          </div>
+          <Select
+            label="Filter by Program"
+            options={[
+              { value: '', label: 'All Programs' },
+              ...programs.map(p => ({ value: p.id, label: p.name }))
+            ]}
+            value={selectedProgram}
+            onChange={(e) => setSelectedProgram(e.target.value)}
           />
-        </Card>
+          <Select
+            label="Filter by Center"
+            options={[
+              { value: '', label: 'All Centers' },
+              ...centers.map(c => ({ value: c.id, label: c.name }))
+            ]}
+            value={selectedCenter}
+            onChange={(e) => setSelectedCenter(e.target.value)}
+          />
+        </div>
+      </Card>
+
+      {/* Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Card className="text-center">
           <div className="text-3xl font-bold text-primary mb-1">{presentCount}</div>
           <div className="text-sm text-text-secondary">Present</div>
@@ -158,18 +237,27 @@ export function AttendancePage() {
                 <th className="px-6 py-4 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-gray-border">
                   Student Name
                 </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-gray-border">
+                  Program
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-gray-border">
+                  Center
+                </th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-gray-border">
                   Status
                 </th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-gray-border">
                   Actions
                 </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-gray-border">
+                  Marked By
+                </th>
               </tr>
             </thead>
             <tbody>
               {students.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-6 py-8 text-center text-text-secondary">
+                  <td colSpan={6} className="px-6 py-8 text-center text-text-secondary">
                     No students found.
                   </td>
                 </tr>
@@ -178,6 +266,12 @@ export function AttendancePage() {
                   <tr key={student.id} className="hover:bg-slate-50">
                     <td className="px-6 py-4 border-b border-gray-100">
                       <span className="font-medium text-text-primary">{student.name}</span>
+                    </td>
+                    <td className="px-6 py-4 border-b border-gray-100">
+                      <span className="text-text-secondary text-sm">{student.programName}</span>
+                    </td>
+                    <td className="px-6 py-4 border-b border-gray-100">
+                      <span className="text-text-secondary text-sm">{student.centerName}</span>
                     </td>
                     <td className="px-6 py-4 border-b border-gray-100 text-center">
                       {student.status === 'present' && (
@@ -219,6 +313,20 @@ export function AttendancePage() {
                           Absent
                         </button>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 border-b border-gray-100">
+                      {student.markedBy ? (
+                        <div className="text-sm">
+                          <span className="text-text-primary">{student.markedBy}</span>
+                          {student.markedAt && (
+                            <span className="block text-xs text-text-secondary">
+                              {format(new Date(student.markedAt), 'h:mm a')}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-text-secondary text-sm">—</span>
+                      )}
                     </td>
                   </tr>
                 ))

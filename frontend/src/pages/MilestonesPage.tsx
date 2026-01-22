@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { PlusIcon, CheckCircleIcon, AcademicCapIcon, UserGroupIcon, CalendarIcon, PencilIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, CheckCircleIcon, AcademicCapIcon, UserGroupIcon, CalendarIcon, PencilIcon, GlobeAltIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import { Modal } from '../components/common/Modal';
 import { Input } from '../components/common/Input';
 import { Select } from '../components/common/Select';
 import { Badge } from '../components/common/Badge';
-import { Milestone, Student, CreateMilestoneRequest, UpdateMilestoneRequest, MilestoneType } from '../types';
+import { Milestone, Student, Program, Center, CreateMilestoneRequest, UpdateMilestoneRequest, MilestoneType } from '../types';
 import { dataService } from '../services/dataService';
 import { MILESTONE_TYPE_OPTIONS } from '../constants/milestoneTypes';
 import { format } from 'date-fns';
@@ -27,9 +27,16 @@ function getDescriptionForLanguage(
 }
 
 export function MilestonesPage() {
+  const [allMilestones, setAllMilestones] = useState<Milestone[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [centers, setCenters] = useState<Center[]>([]);
+  const [selectedProgram, setSelectedProgram] = useState<string>('');
+  const [selectedCenter, setSelectedCenter] = useState<string>('');
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingMilestone, setDeletingMilestone] = useState<Milestone | null>(null);
   const [editingMilestone, setEditingMilestone] = useState<Milestone | null>(null);
   const [formData, setFormData] = useState({
     studentId: '',
@@ -41,34 +48,51 @@ export function MilestonesPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Per-milestone language selection
   const [milestoneLanguages, setMilestoneLanguages] = useState<Record<string, SupportedLanguage>>({});
 
+  // Create a map of student IDs to their program/center info
+  const studentMap = new Map(students.map(s => [s.id, s]));
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch students to get their milestones and for the dropdown
-      const studentsResponse = await dataService.students.getAll();
+      // Fetch students, programs, centers, and milestones
+      const [studentsResponse, programsResponse, centersResponse] = await Promise.all([
+        dataService.students.getAll(),
+        dataService.programs.getAll(),
+        dataService.centers.getAll(),
+      ]);
+
+      if (programsResponse.success && programsResponse.data) {
+        setPrograms(programsResponse.data);
+      }
+
+      if (centersResponse.success && centersResponse.data) {
+        setCenters(centersResponse.data);
+      }
+
       if (studentsResponse.success && studentsResponse.data) {
         setStudents(studentsResponse.data);
 
         // Fetch milestones for all students
-        const allMilestones: Milestone[] = [];
+        const fetchedMilestones: Milestone[] = [];
         for (const student of studentsResponse.data) {
           const milestonesResponse = await dataService.milestones.getByStudent(student.id);
           if (milestonesResponse.success && milestonesResponse.data) {
-            allMilestones.push(...milestonesResponse.data);
+            fetchedMilestones.push(...milestonesResponse.data);
           }
         }
 
         // Sort by date (most recent first)
-        allMilestones.sort((a, b) =>
+        fetchedMilestones.sort((a, b) =>
           new Date(b.dateAchieved).getTime() - new Date(a.dateAchieved).getTime()
         );
-        setMilestones(allMilestones);
+        setAllMilestones(fetchedMilestones);
       } else {
         setError(studentsResponse.error || 'Failed to load data');
       }
@@ -78,6 +102,25 @@ export function MilestonesPage() {
       setLoading(false);
     }
   }, []);
+
+  // Filter milestones based on selected program and center
+  useEffect(() => {
+    let filtered = [...allMilestones];
+
+    if (selectedProgram || selectedCenter) {
+      filtered = filtered.filter(milestone => {
+        const student = studentMap.get(milestone.studentId);
+        if (!student) return false;
+
+        if (selectedProgram && student.programId !== selectedProgram) return false;
+        if (selectedCenter && student.centerId !== selectedCenter) return false;
+
+        return true;
+      });
+    }
+
+    setMilestones(filtered);
+  }, [allMilestones, selectedProgram, selectedCenter, studentMap]);
 
   useEffect(() => {
     fetchData();
@@ -182,6 +225,37 @@ export function MilestonesPage() {
     setErrors({});
   };
 
+  const handleDeleteClick = (milestone: Milestone) => {
+    setDeletingMilestone(milestone);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingMilestone) return;
+
+    setDeleting(true);
+    setError(null);
+    try {
+      const response = await dataService.milestones.delete(deletingMilestone.id);
+      if (response.success) {
+        await fetchData();
+        setIsDeleteModalOpen(false);
+        setDeletingMilestone(null);
+      } else {
+        setError(response.error || 'Failed to delete milestone');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete milestone');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setIsDeleteModalOpen(false);
+    setDeletingMilestone(null);
+  };
+
   const handleMilestoneLanguageChange = (milestoneId: string, language: SupportedLanguage) => {
     setMilestoneLanguages(prev => ({
       ...prev,
@@ -198,7 +272,14 @@ export function MilestonesPage() {
     label: t.label,
   }));
 
-  const studentOptions = students.map((s) => ({
+  // Filter students for dropdown based on selected program/center
+  const filteredStudents = students.filter(s => {
+    if (selectedProgram && s.programId !== selectedProgram) return false;
+    if (selectedCenter && s.centerId !== selectedCenter) return false;
+    return true;
+  });
+
+  const studentOptions = filteredStudents.map((s) => ({
     value: s.id,
     label: s.name,
   }));
@@ -247,6 +328,30 @@ export function MilestonesPage() {
           {error}
         </div>
       )}
+
+      {/* Filters */}
+      <Card className="mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Select
+            label="Filter by Program"
+            options={[
+              { value: '', label: 'All Programs' },
+              ...programs.map(p => ({ value: p.id, label: p.name }))
+            ]}
+            value={selectedProgram}
+            onChange={(e) => setSelectedProgram(e.target.value)}
+          />
+          <Select
+            label="Filter by Center"
+            options={[
+              { value: '', label: 'All Centers' },
+              ...centers.map(c => ({ value: c.id, label: c.name }))
+            ]}
+            value={selectedCenter}
+            onChange={(e) => setSelectedCenter(e.target.value)}
+          />
+        </div>
+      </Card>
 
       {/* Milestones List */}
       {milestones.length === 0 ? (
@@ -315,6 +420,14 @@ export function MilestonesPage() {
                           title="Edit milestone"
                         >
                           <PencilIcon className="w-4 h-4" />
+                        </button>
+                        {/* Delete Button */}
+                        <button
+                          onClick={() => handleDeleteClick(milestone)}
+                          className="p-1 text-text-secondary hover:text-red-500 transition-colors"
+                          title="Delete milestone"
+                        >
+                          <TrashIcon className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -421,6 +534,45 @@ export function MilestonesPage() {
             error={errors.verifiedBy}
             required
           />
+        </div>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={handleDeleteCancel}
+        title="Delete Milestone"
+        footer={
+          <>
+            <Button variant="secondary" onClick={handleDeleteCancel}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleDeleteConfirm} isLoading={deleting}>
+              Delete
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-text-primary">
+            Are you sure you want to delete this milestone?
+          </p>
+          {deletingMilestone && (
+            <div className="bg-gray-bg p-4 rounded-lg">
+              <p className="font-medium text-text-primary mb-1">
+                {deletingMilestone.studentName}
+              </p>
+              <p className="text-text-secondary text-sm">
+                {deletingMilestone.description}
+              </p>
+              <p className="text-text-secondary text-xs mt-2">
+                {format(new Date(deletingMilestone.dateAchieved), 'MMM d, yyyy')}
+              </p>
+            </div>
+          )}
+          <p className="text-red-500 text-sm">
+            This action cannot be undone.
+          </p>
         </div>
       </Modal>
     </div>
