@@ -1,33 +1,16 @@
 import { Context, HttpRequest } from '@azure/functions';
-import { createClient } from '@supabase/supabase-js';
+import * as jwt from 'jsonwebtoken';
 import { getTableClient, TABLES, entityToObject } from '../services/tableStorage';
-import { User, UserEntity } from '../types';
+import { UserEntity } from '../types';
 
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
+// Supabase JWT Secret - found in Supabase Dashboard > Settings > API > JWT Settings
+const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET || '';
 
 // Log configuration status (not the actual values for security)
-// Service role key typically starts with 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9' and is ~200+ chars
-// Anon key is shorter and different
-console.log('[Auth] Supabase config check:', {
-  hasUrl: !!supabaseUrl,
-  urlLength: supabaseUrl.length,
-  urlPrefix: supabaseUrl.substring(0, 30),
-  hasServiceKey: !!supabaseServiceKey,
-  serviceKeyLength: supabaseServiceKey.length,
-  serviceKeyPrefix: supabaseServiceKey.substring(0, 20),
+console.log('[Auth] JWT config check:', {
+  hasJwtSecret: !!supabaseJwtSecret,
+  jwtSecretLength: supabaseJwtSecret.length,
 });
-
-const supabase = supabaseUrl && supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
-  : null;
-
-console.log('[Auth] Supabase client initialized:', !!supabase);
 
 export interface AuthenticatedUser {
   id: string;
@@ -76,8 +59,8 @@ export async function verifyAuth(
     };
   }
 
-  if (!supabase) {
-    context.log.warn('Supabase not configured. Using mock authentication.');
+  if (!supabaseJwtSecret) {
+    context.log.warn('SUPABASE_JWT_SECRET not configured. Using mock authentication.');
     return {
       success: true,
       user: {
@@ -92,37 +75,44 @@ export async function verifyAuth(
   }
 
   try {
-    // Verify the JWT token with Supabase Admin API
-    // Using auth.getUser() with the JWT token to verify it server-side
-    context.log('[Auth] Verifying token with Supabase Admin API...');
-    const { data: { user: supabaseUser }, error } = await supabase.auth.getUser(token);
+    // Verify the JWT token using the Supabase JWT secret
+    context.log('[Auth] Verifying JWT token...');
 
-    if (error || !supabaseUser) {
-      context.log.error('[Auth] Token verification failed:', {
-        error: error?.message,
-        errorCode: error?.code,
-        errorStatus: error?.status,
-        hasUser: !!supabaseUser,
-      });
+    interface SupabaseJwtPayload {
+      sub: string;  // user id
+      email?: string;
+      role?: string;
+      aud?: string;
+      exp?: number;
+      iat?: number;
+    }
+
+    const decoded = jwt.verify(token, supabaseJwtSecret, {
+      algorithms: ['HS256'],
+    }) as SupabaseJwtPayload;
+
+    if (!decoded.sub) {
+      context.log.error('[Auth] Token missing sub (user id)');
       return {
         success: false,
-        error: `Invalid or expired token: ${error?.message || 'No user returned'}`,
+        error: 'Invalid token: missing user id',
         status: 401,
       };
     }
-    context.log('[Auth] Token verified successfully for user:', supabaseUser.id);
+
+    context.log('[Auth] Token verified successfully for user:', decoded.sub);
 
     // Fetch user profile from Table Storage
     try {
       const usersTable = getTableClient(TABLES.USERS);
-      const userEntity = await usersTable.getEntity<UserEntity>('user', supabaseUser.id);
+      const userEntity = await usersTable.getEntity<UserEntity>('user', decoded.sub);
       const userProfile = entityToObject<UserEntity>(userEntity);
 
       return {
         success: true,
         user: {
-          id: supabaseUser.id,
-          email: supabaseUser.email || '',
+          id: decoded.sub,
+          email: decoded.email || '',
           role: userProfile.role,
           centerId: userProfile.centerId || null,
           centerName: userProfile.centerName || null,
@@ -135,21 +125,25 @@ export async function verifyAuth(
       return {
         success: true,
         user: {
-          id: supabaseUser.id,
-          email: supabaseUser.email || '',
+          id: decoded.sub,
+          email: decoded.email || '',
           role: 'admin',
           centerId: null,
           centerName: null,
-          displayName: supabaseUser.email?.split('@')[0] || 'User',
+          displayName: decoded.email?.split('@')[0] || 'User',
         },
       };
     }
   } catch (error) {
-    context.log.error('Authentication error:', error);
+    const jwtError = error as jwt.JsonWebTokenError;
+    context.log.error('[Auth] JWT verification failed:', {
+      name: jwtError.name,
+      message: jwtError.message,
+    });
     return {
       success: false,
-      error: 'Authentication failed',
-      status: 500,
+      error: `Invalid or expired token: ${jwtError.message}`,
+      status: 401,
     };
   }
 }

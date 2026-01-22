@@ -17,9 +17,11 @@
     "@azure/data-tables": "^13.2.2",
     "@azure/functions": "^3.5.0",
     "@supabase/supabase-js": "^2.45.0",
+    "jsonwebtoken": "^9.0.3",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.10.0",
     "@types/uuid": "^9.0.0",
     "azure-functions-core-tools": "^4.0.0",
