@@ -35,6 +35,15 @@ import type {
 let authToken: string | null = null;
 
 export function setAuthToken(token: string | null) {
+  console.log('[DataService] setAuthToken called:', token ? `token length ${token.length}` : 'null');
+  if (token) {
+    try {
+      const header = JSON.parse(atob(token.split('.')[0]));
+      console.log('[DataService] Token header:', { alg: header.alg, kid: header.kid });
+    } catch (e) {
+      console.log('[DataService] Could not decode token header');
+    }
+  }
   authToken = token;
 }
 
