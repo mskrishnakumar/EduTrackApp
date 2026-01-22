@@ -283,6 +283,21 @@ export async function getCenters(): Promise<ApiResponse<Center[]>> {
   return { success: true, data: centers };
 }
 
+export async function createCenter(data: { name: string; location: string }): Promise<ApiResponse<Center>> {
+  await delay(MOCK_DELAY);
+
+  const newCenter: Center = {
+    id: generateId(),
+    name: data.name,
+    location: data.location,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  };
+
+  centers.push(newCenter);
+  return { success: true, data: newCenter };
+}
+
 // ==================== Attendance ====================
 
 export async function getAttendanceByDate(date: string): Promise<ApiResponse<AttendanceRecord[]>> {
@@ -379,6 +394,7 @@ export const mockApi = {
   },
   centers: {
     getAll: getCenters,
+    create: createCenter,
   },
   attendance: {
     getByDate: getAttendanceByDate,

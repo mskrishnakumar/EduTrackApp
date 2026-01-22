@@ -3,6 +3,8 @@ export { DashboardPage } from './DashboardPage';
 export { StudentsPage } from './StudentsPage';
 export { StudentDetailPage } from './StudentDetailPage';
 export { ProgramsPage } from './ProgramsPage';
+export { CentersPage } from './CentersPage';
+export { MilestonesPage } from './MilestonesPage';
 export { AttendancePage } from './AttendancePage';
 export { AnalyticsPage } from './AnalyticsPage';
 export { ReportsPage } from './ReportsPage';

@@ -8,6 +8,8 @@ import {
   StudentsPage,
   StudentDetailPage,
   ProgramsPage,
+  CentersPage,
+  MilestonesPage,
   AttendancePage,
   AnalyticsPage,
   ReportsPage,
@@ -35,6 +37,8 @@ function App() {
             <Route path={ROUTES.STUDENTS} element={<StudentsPage />} />
             <Route path={ROUTES.STUDENT_DETAIL} element={<StudentDetailPage />} />
             <Route path={ROUTES.PROGRAMS} element={<ProgramsPage />} />
+            <Route path={ROUTES.CENTERS} element={<CentersPage />} />
+            <Route path={ROUTES.MILESTONES} element={<MilestonesPage />} />
             <Route path={ROUTES.ATTENDANCE} element={<AttendancePage />} />
             <Route path={ROUTES.ANALYTICS} element={<AnalyticsPage />} />
             <Route path={ROUTES.REPORTS} element={<ReportsPage />} />

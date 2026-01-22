@@ -131,11 +131,23 @@ export async function deleteProgram(id: string): Promise<ApiResponse<void>> {
 
 // ==================== Centers ====================
 
+export interface CreateCenterRequest {
+  name: string;
+  location: string;
+}
+
 export async function getCenters(): Promise<ApiResponse<Center[]>> {
   if (USE_MOCK_API) {
     return mockApi.centers.getAll();
   }
   return api.get<Center[]>('/centers', authToken);
+}
+
+export async function createCenter(data: CreateCenterRequest): Promise<ApiResponse<Center>> {
+  if (USE_MOCK_API) {
+    return mockApi.centers.create(data);
+  }
+  return api.post<Center>('/centers', data, authToken);
 }
 
 // ==================== Attendance ====================
@@ -223,6 +235,7 @@ export const dataService = {
   },
   centers: {
     getAll: getCenters,
+    create: createCenter,
   },
   attendance: {
     getByDate: getAttendanceByDate,

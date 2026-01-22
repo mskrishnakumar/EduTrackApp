@@ -12,6 +12,7 @@ import {
   MagnifyingGlassIcon,
   Bars3Icon,
   ArrowRightOnRectangleIcon,
+  BuildingOfficeIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../context/AuthContext';
 import { ROUTES } from '../../constants/routes';
@@ -25,8 +26,9 @@ const navItems = [
   { path: ROUTES.DASHBOARD, label: 'Dashboard', icon: Squares2X2Icon },
   { path: ROUTES.STUDENTS, label: 'Students', icon: UsersIcon },
   { path: ROUTES.PROGRAMS, label: 'Programs', icon: AcademicCapIcon },
+  { path: ROUTES.CENTERS, label: 'Centers', icon: BuildingOfficeIcon },
+  { path: ROUTES.MILESTONES, label: 'Milestones', icon: CheckCircleIcon },
   { path: ROUTES.ANALYTICS, label: 'Analytics', icon: ChartBarIcon },
-  { path: '/milestones', label: 'Milestones', icon: CheckCircleIcon },
   { path: ROUTES.ATTENDANCE, label: 'Attendance', icon: CalendarIcon },
   { path: ROUTES.REPORTS, label: 'Reports', icon: DocumentTextIcon },
 ];
