@@ -22,18 +22,6 @@ export async function apiRequest<T>(
   options: RequestInit = {},
   token?: string | null
 ): Promise<T> {
-  // Debug: Log token info
-  if (token) {
-    try {
-      const header = JSON.parse(atob(token.split('.')[0]));
-      console.log('[API] Token being sent:', { alg: header.alg, kid: header.kid, tokenLength: token.length });
-    } catch (e) {
-      console.log('[API] Token being sent (could not decode header):', { tokenLength: token?.length });
-    }
-  } else {
-    console.log('[API] No token being sent');
-  }
-
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     // Use custom header to bypass Azure SWA's Authorization header replacement

@@ -94,9 +94,6 @@ export async function verifyAuth(
   // Fallback to Authorization header for local development or direct API access
   const authHeader = request.headers['authorization'] || request.headers['Authorization'];
 
-  context.log('[Auth] X-Supabase-Auth present:', !!supabaseToken);
-  context.log('[Auth] Authorization header present:', !!authHeader);
-
   // Prefer X-Supabase-Auth, fall back to Authorization header
   let token: string | undefined;
 
@@ -109,7 +106,7 @@ export async function verifyAuth(
   if (!token) {
     return {
       success: false,
-      error: 'Missing authentication token. Provide X-Supabase-Auth header or Authorization Bearer token.',
+      error: 'Missing authentication token',
       status: 401,
     };
   }
@@ -145,22 +142,17 @@ export async function verifyAuth(
   }
 
   try {
-    // Decode token header to see the algorithm
-    // JWT uses base64url encoding, so we need to convert to standard base64
+    // Decode token header to determine algorithm
+    // JWT uses base64url encoding, convert to standard base64
     const tokenParts = token.split('.');
     const base64UrlHeader = tokenParts[0];
-    context.log('[Auth] Raw token header (first 50 chars):', base64UrlHeader.substring(0, 50));
     const base64Header = base64UrlHeader.replace(/-/g, '+').replace(/_/g, '/');
-    const decodedString = Buffer.from(base64Header, 'base64').toString();
-    context.log('[Auth] Decoded header string:', decodedString);
-    const header = JSON.parse(decodedString);
-    context.log('[Auth] Parsed token header:', { alg: header.alg, kid: header.kid, typ: header.typ });
+    const header = JSON.parse(Buffer.from(base64Header, 'base64').toString());
 
     let decoded: SupabaseJwtPayload;
 
     // If token uses HS256 (legacy), verify with JWT secret
     if (header.alg === 'HS256') {
-      context.log('[Auth] Token uses HS256, verifying with JWT secret...');
       if (!supabaseJwtSecret) {
         return {
           success: false,
@@ -171,12 +163,10 @@ export async function verifyAuth(
       decoded = jwt.verify(token, supabaseJwtSecret, { algorithms: ['HS256'] }) as SupabaseJwtPayload;
     } else {
       // For ES256/RS256, use JWKS verification
-      context.log('[Auth] Token uses asymmetric algorithm, verifying with JWKS...');
       decoded = await verifyTokenWithJwks(token);
     }
 
     if (!decoded.sub) {
-      context.log.error('[Auth] Token missing sub (user id)');
       return {
         success: false,
         error: 'Invalid token: missing user id',
@@ -184,7 +174,6 @@ export async function verifyAuth(
       };
     }
 
-    context.log('[Auth] Token verified successfully for user:', decoded.sub);
 
     // Fetch user profile from Table Storage
     try {
