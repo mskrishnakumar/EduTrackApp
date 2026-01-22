@@ -15,8 +15,6 @@ import type {
   Center,
   AttendanceRecord,
   DashboardStats,
-  RecentActivity,
-  ProgramEnrollment,
   ProgressDataPoint,
   MilestoneStats,
   AttendanceSummary,
@@ -182,20 +180,6 @@ export async function getDashboardStats(): Promise<ApiResponse<DashboardStats>> 
   return api.get<DashboardStats>('/dashboard/stats', authToken);
 }
 
-export async function getRecentActivity(): Promise<ApiResponse<RecentActivity[]>> {
-  if (USE_MOCK_API) {
-    return mockApi.dashboard.getRecentActivity();
-  }
-  return api.get<RecentActivity[]>('/dashboard/activity', authToken);
-}
-
-export async function getProgramEnrollment(): Promise<ApiResponse<ProgramEnrollment[]>> {
-  if (USE_MOCK_API) {
-    return mockApi.dashboard.getProgramEnrollment();
-  }
-  return api.get<ProgramEnrollment[]>('/dashboard/enrollment', authToken);
-}
-
 // ==================== Analytics ====================
 
 export async function getProgressData(): Promise<ApiResponse<ProgressDataPoint[]>> {
@@ -244,8 +228,6 @@ export const dataService = {
   },
   dashboard: {
     getStats: getDashboardStats,
-    getRecentActivity: getRecentActivity,
-    getProgramEnrollment: getProgramEnrollment,
   },
   analytics: {
     getProgressData: getProgressData,

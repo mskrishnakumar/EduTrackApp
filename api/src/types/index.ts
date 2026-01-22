@@ -64,6 +64,7 @@ export interface Milestone {
   description: string;
   dateAchieved: string;
   verifiedBy: string;
+  centerId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -214,6 +215,7 @@ export interface MilestoneEntity {
   dateAchieved: string;
   verifiedBy: string;
   centerId: string;
+  studentName?: string;
   createdAt: string;
   updatedAt: string;
   createdBy: string;

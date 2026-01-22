@@ -15,18 +15,29 @@ const colorMap: Record<number, 'primary' | 'secondary' | 'warning' | 'info'> = {
 };
 
 export function QuickStats({ programs }: QuickStatsProps) {
+  if (programs.length === 0) {
+    return (
+      <Card>
+        <CardHeader title="Program Enrollment" />
+        <div className="py-8 text-center text-text-secondary">
+          No programs found.
+        </div>
+      </Card>
+    );
+  }
+
   // Find max enrollment for percentage calculation
-  const maxEnrollment = Math.max(...programs.map((p) => p.enrollmentCount));
+  const maxEnrollment = Math.max(...programs.map((p) => p.studentCount), 1);
 
   return (
     <Card>
-      <CardHeader title="Quick Stats" />
+      <CardHeader title="Program Enrollment" />
       <div className="space-y-6">
         {programs.map((program, index) => (
           <ProgressBar
             key={program.programId}
             label={program.programName}
-            value={program.enrollmentCount}
+            value={program.studentCount}
             max={maxEnrollment}
             color={colorMap[index % 4]}
           />

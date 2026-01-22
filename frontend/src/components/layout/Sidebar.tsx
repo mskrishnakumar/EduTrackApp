@@ -4,7 +4,6 @@ import {
   Squares2X2Icon,
   UsersIcon,
   AcademicCapIcon,
-  ChartBarIcon,
   CheckCircleIcon,
   CalendarIcon,
   DocumentTextIcon,
@@ -28,7 +27,6 @@ const navItems = [
   { path: ROUTES.PROGRAMS, label: 'Programs', icon: AcademicCapIcon },
   { path: ROUTES.CENTERS, label: 'Centers', icon: BuildingOfficeIcon },
   { path: ROUTES.MILESTONES, label: 'Milestones', icon: CheckCircleIcon },
-  { path: ROUTES.ANALYTICS, label: 'Analytics', icon: ChartBarIcon },
   { path: ROUTES.ATTENDANCE, label: 'Attendance', icon: CalendarIcon },
   { path: ROUTES.REPORTS, label: 'Reports', icon: DocumentTextIcon },
 ];

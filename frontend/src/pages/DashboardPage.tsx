@@ -7,7 +7,7 @@ import { QuarterGoalCard } from '../components/dashboard/QuarterGoalCard';
 import { RecentActivity } from '../components/dashboard/RecentActivity';
 import { QuickStats } from '../components/dashboard/QuickStats';
 import { ROUTES } from '../constants/routes';
-import { RecentActivity as RecentActivityType, ProgramEnrollment, DashboardStats } from '../types';
+import { DashboardStats } from '../types';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { dataService } from '../services/dataService';
 
@@ -16,8 +16,6 @@ export function DashboardPage() {
   const navigate = useNavigate();
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [activities, setActivities] = useState<RecentActivityType[]>([]);
-  const [programEnrollments, setProgramEnrollments] = useState<ProgramEnrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,20 +23,12 @@ export function DashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const [statsResponse, activityResponse, enrollmentResponse] = await Promise.all([
-        dataService.dashboard.getStats(),
-        dataService.dashboard.getRecentActivity(),
-        dataService.dashboard.getProgramEnrollment(),
-      ]);
+      const statsResponse = await dataService.dashboard.getStats();
 
       if (statsResponse.success && statsResponse.data) {
         setStats(statsResponse.data);
-      }
-      if (activityResponse.success && activityResponse.data) {
-        setActivities(activityResponse.data);
-      }
-      if (enrollmentResponse.success && enrollmentResponse.data) {
-        setProgramEnrollments(enrollmentResponse.data);
+      } else {
+        setError(statsResponse.error || 'Failed to load dashboard data');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
@@ -94,29 +84,29 @@ export function DashboardPage() {
         <StatCard
           title="Total Students"
           value={stats?.totalStudents || 0}
-          change={stats?.studentGrowth ? `+${stats.studentGrowth}% from last month` : 'No change'}
+          change="View all students"
           icon="👥"
           iconColor="blue"
           link={{ label: 'View all students', onClick: () => navigate(ROUTES.STUDENTS) }}
         />
         <StatCard
-          title="Milestones This Month"
-          value={stats?.milestonesThisMonth || 0}
-          change={stats?.milestoneGrowth ? `+${stats.milestoneGrowth}% from last month` : 'No change'}
+          title="Milestones This Quarter"
+          value={stats?.milestonesThisQuarter || 0}
+          change={`${stats?.attendanceRate || 0}% attendance rate`}
           icon="🎯"
           iconColor="green"
-          link={{ label: 'All milestones', onClick: () => {} }}
+          link={{ label: 'All milestones', onClick: () => navigate(ROUTES.MILESTONES) }}
         />
         <StatCard
           title="Active Programs"
-          value={stats?.activePrograms || 0}
+          value={stats?.totalPrograms || 0}
           change="View all programs"
           icon="🎓"
           iconColor="orange"
           link={{ label: 'View programs', onClick: () => navigate(ROUTES.PROGRAMS) }}
         />
         <QuarterGoalCard
-          percentage={stats?.quarterGoalProgress || 0}
+          percentage={stats?.quarterProgress || 0}
           onViewAll={() => {}}
         />
       </div>
@@ -135,10 +125,10 @@ export function DashboardPage() {
       {/* Dashboard Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <RecentActivity activities={activities} onViewAll={() => {}} />
+          <RecentActivity activities={stats?.recentMilestones || []} onViewAll={() => navigate(ROUTES.MILESTONES)} />
         </div>
         <div>
-          <QuickStats programs={programEnrollments} />
+          <QuickStats programs={stats?.programEnrollment || []} />
         </div>
       </div>
     </div>

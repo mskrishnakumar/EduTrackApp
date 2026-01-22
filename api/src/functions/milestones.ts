@@ -7,14 +7,16 @@ import { getTableClient, TABLES, entityToObject, createTimestampRowKey } from '.
 import { Milestone, MilestoneEntity, CreateMilestoneRequest, UpdateMilestoneRequest, ApiResponse, StudentEntity } from '../types';
 
 // Helper to map entity to Milestone
-function mapEntityToMilestone(entity: MilestoneEntity): Milestone {
+function mapEntityToMilestone(entity: MilestoneEntity, studentName?: string): Milestone {
   return {
     id: entity.rowKey,
     studentId: entity.partitionKey,
+    studentName: studentName || entity.studentName,
     type: entity.type,
     description: entity.description,
     dateAchieved: entity.dateAchieved,
     verifiedBy: entity.verifiedBy,
+    centerId: entity.centerId,
     createdAt: entity.createdAt,
     updatedAt: entity.updatedAt,
   };
@@ -49,9 +51,20 @@ export const getStudentMilestones: AzureFunction = async function (context: Cont
       break;
     }
 
+    let studentName: string | undefined;
     if (!studentCenterId) {
       context.res = { status: 404, body: { success: false, error: 'Student not found' } };
       return;
+    }
+
+    // Get student name from the iterator we already have
+    const studentsTableForName = getTableClient(TABLES.STUDENTS);
+    const studentNameIterator = studentsTableForName.listEntities<StudentEntity>({
+      queryOptions: { filter: `RowKey eq '${studentId}'` }
+    });
+    for await (const student of studentNameIterator) {
+      studentName = student.name;
+      break;
     }
 
     if (!checkCenterAccess(user, studentCenterId)) {
@@ -68,7 +81,7 @@ export const getStudentMilestones: AzureFunction = async function (context: Cont
     });
 
     for await (const entity of iterator) {
-      milestones.push(mapEntityToMilestone(entityToObject<MilestoneEntity>(entity)));
+      milestones.push(mapEntityToMilestone(entityToObject<MilestoneEntity>(entity), studentName));
     }
 
     // Sort by date achieved descending (most recent first)
@@ -118,8 +131,10 @@ export const createMilestone: AzureFunction = async function (context: Context, 
     });
 
     let studentCenterId: string | null = null;
+    let studentName: string | undefined;
     for await (const student of studentIterator) {
       studentCenterId = student.partitionKey;
+      studentName = student.name;
       break;
     }
 
@@ -144,6 +159,7 @@ export const createMilestone: AzureFunction = async function (context: Context, 
       dateAchieved: body.dateAchieved,
       verifiedBy: body.verifiedBy || '',
       centerId: studentCenterId,
+      studentName: studentName || '',
       createdAt: now,
       updatedAt: now,
       createdBy: user.id,
@@ -152,7 +168,7 @@ export const createMilestone: AzureFunction = async function (context: Context, 
     const milestonesTable = getTableClient(TABLES.MILESTONES);
     await milestonesTable.createEntity(milestoneEntity);
 
-    const milestone = mapEntityToMilestone(milestoneEntity);
+    const milestone = mapEntityToMilestone(milestoneEntity, studentName);
 
     context.res = { status: 201, body: { success: true, data: milestone } };
   } catch (error) {

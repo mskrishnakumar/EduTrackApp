@@ -1,10 +1,10 @@
 import React from 'react';
 import { Card, CardHeader } from '../common/Card';
 import { Badge } from '../common/Badge';
-import { RecentActivity as RecentActivityType } from '../../types';
+import { RecentMilestone } from '../../types';
 
 interface RecentActivityProps {
-  activities: RecentActivityType[];
+  activities: RecentMilestone[];
   onViewAll?: () => void;
 }
 
@@ -20,6 +20,27 @@ export function RecentActivity({ activities, onViewAll }: RecentActivityProps) {
     if (diffInDays === 1) return '1 day ago';
     return `${diffInDays} days ago`;
   };
+
+  if (activities.length === 0) {
+    return (
+      <Card>
+        <CardHeader
+          title="Recent Activity"
+          action={
+            <button
+              onClick={onViewAll}
+              className="text-primary text-body font-medium hover:text-primary-dark hover:underline"
+            >
+              View all
+            </button>
+          }
+        />
+        <div className="py-8 text-center text-text-secondary">
+          No recent milestones recorded.
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -45,15 +66,15 @@ export function RecentActivity({ activities, onViewAll }: RecentActivityProps) {
                 {activity.studentName}
               </span>
               <span className="text-xs text-text-secondary">
-                {formatTimeAgo(activity.timestamp)}
+                {formatTimeAgo(activity.createdAt)}
               </span>
             </div>
             <div className="flex items-start gap-2">
-              <Badge type={activity.milestoneType}>
-                {activity.milestoneType === 'life-skills'
+              <Badge type={activity.type}>
+                {activity.type === 'life-skills'
                   ? 'Life Skills'
-                  : activity.milestoneType.charAt(0).toUpperCase() +
-                    activity.milestoneType.slice(1)}
+                  : activity.type.charAt(0).toUpperCase() +
+                    activity.type.slice(1)}
               </Badge>
               <span className="text-body text-text-primary">
                 {activity.description}

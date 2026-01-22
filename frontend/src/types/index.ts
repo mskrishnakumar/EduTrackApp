@@ -155,15 +155,34 @@ export interface PaginatedResponse<T> extends ApiResponse<T> {
 }
 
 // Dashboard Types
-export interface DashboardStats {
-  totalStudents: number;
-  milestonesThisMonth: number;
-  activePrograms: number;
-  quarterGoalProgress: number;
-  studentGrowth: number;
-  milestoneGrowth: number;
+export interface RecentMilestone {
+  id: string;
+  studentId: string;
+  studentName: string;
+  type: MilestoneType;
+  description: string;
+  dateAchieved: string;
+  createdAt: string;
 }
 
+export interface ProgramEnrollment {
+  programId: string;
+  programName: string;
+  studentCount: number;
+}
+
+export interface DashboardStats {
+  totalStudents: number;
+  totalPrograms: number;
+  milestonesThisQuarter: number;
+  attendanceRate: number;
+  quarterGoal: number;
+  quarterProgress: number;
+  recentMilestones: RecentMilestone[];
+  programEnrollment: ProgramEnrollment[];
+}
+
+// Legacy types for backwards compatibility with mock data
 export interface RecentActivity {
   id: string;
   studentId: string;
@@ -171,13 +190,6 @@ export interface RecentActivity {
   milestoneType: MilestoneType;
   description: string;
   timestamp: string;
-}
-
-export interface ProgramEnrollment {
-  programId: string;
-  programName: string;
-  enrollmentCount: number;
-  percentage: number;
 }
 
 // Analytics Types

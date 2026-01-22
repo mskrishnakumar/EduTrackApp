@@ -10,6 +10,7 @@ import { dataService } from '../services/dataService';
 export function ProgramsPage() {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingProgram, setEditingProgram] = useState<Program | null>(null);
   const [formData, setFormData] = useState({ name: '', description: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -47,19 +48,36 @@ export function ProgramsPage() {
         description: formData.description.trim(),
       };
 
-      const response = await dataService.programs.create(data);
+      let response;
+      if (editingProgram) {
+        response = await dataService.programs.update(editingProgram.id, data);
+      } else {
+        response = await dataService.programs.create(data);
+      }
+
       if (response.success) {
         await fetchPrograms();
-        setFormData({ name: '', description: '' });
-        setIsFormOpen(false);
+        handleCloseModal();
       } else {
-        setError(response.error || 'Failed to create program');
+        setError(response.error || `Failed to ${editingProgram ? 'update' : 'create'} program`);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create program');
+      setError(err instanceof Error ? err.message : `Failed to ${editingProgram ? 'update' : 'create'} program`);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleEdit = (program: Program) => {
+    setEditingProgram(program);
+    setFormData({ name: program.name, description: program.description });
+    setIsFormOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsFormOpen(false);
+    setEditingProgram(null);
+    setFormData({ name: '', description: '' });
   };
 
   if (loading) {
@@ -117,7 +135,7 @@ export function ProgramsPage() {
                 <span className="text-sm text-text-secondary">
                   {program.enrollmentCount || 0} students enrolled
                 </span>
-                <Button variant="secondary" size="sm">
+                <Button variant="secondary" size="sm" onClick={() => handleEdit(program)}>
                   Edit
                 </Button>
               </div>
@@ -126,18 +144,18 @@ export function ProgramsPage() {
         </div>
       )}
 
-      {/* Add Program Modal */}
+      {/* Add/Edit Program Modal */}
       <Modal
         isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        title="Add New Program"
+        onClose={handleCloseModal}
+        title={editingProgram ? 'Edit Program' : 'Add New Program'}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setIsFormOpen(false)}>
+            <Button variant="secondary" onClick={handleCloseModal}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleSubmit} isLoading={saving}>
-              Save Program
+              {editingProgram ? 'Update Program' : 'Save Program'}
             </Button>
           </>
         }

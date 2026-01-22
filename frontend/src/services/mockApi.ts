@@ -5,8 +5,6 @@ import type {
   Center,
   AttendanceRecord,
   DashboardStats,
-  RecentActivity,
-  ProgramEnrollment,
   ProgressDataPoint,
   MilestoneStats,
   AttendanceSummary,
@@ -27,8 +25,6 @@ import {
   mockMilestones,
   mockCenters,
   mockDashboardStats,
-  mockRecentActivity,
-  mockProgramEnrollment,
   mockProgressData,
   mockMilestoneStats,
   mockAttendanceSummary,
@@ -346,18 +342,6 @@ export async function getDashboardStats(): Promise<ApiResponse<DashboardStats>> 
   return { success: true, data: mockDashboardStats };
 }
 
-export async function getRecentActivity(): Promise<ApiResponse<RecentActivity[]>> {
-  await delay(MOCK_DELAY);
-
-  return { success: true, data: mockRecentActivity };
-}
-
-export async function getProgramEnrollment(): Promise<ApiResponse<ProgramEnrollment[]>> {
-  await delay(MOCK_DELAY);
-
-  return { success: true, data: mockProgramEnrollment };
-}
-
 // ==================== Analytics ====================
 
 export async function getProgressData(): Promise<ApiResponse<ProgressDataPoint[]>> {
@@ -403,8 +387,6 @@ export const mockApi = {
   },
   dashboard: {
     getStats: getDashboardStats,
-    getRecentActivity: getRecentActivity,
-    getProgramEnrollment: getProgramEnrollment,
   },
   analytics: {
     getProgressData: getProgressData,

@@ -5,7 +5,7 @@ import type {
   Center,
   AttendanceRecord,
   DashboardStats,
-  RecentActivity,
+  RecentMilestone,
   ProgramEnrollment,
   ProgressDataPoint,
   MilestoneStats,
@@ -63,32 +63,34 @@ export function generateAttendanceForDate(date: string): AttendanceRecord[] {
   }));
 }
 
-// Mock Dashboard Stats
-export const mockDashboardStats: DashboardStats = {
-  totalStudents: 143,
-  milestonesThisMonth: 47,
-  activePrograms: 4,
-  quarterGoalProgress: 73,
-  studentGrowth: 12.5,
-  milestoneGrowth: 8.3,
-};
-
-// Mock Recent Activity
-export const mockRecentActivity: RecentActivity[] = [
-  { id: '1', studentId: 'stu-8', studentName: 'Jessica Taylor', milestoneType: 'academic', description: 'Completed job interview preparation', timestamp: '2024-03-28T14:30:00Z' },
-  { id: '2', studentId: 'stu-2', studentName: 'Maria Garcia', milestoneType: 'attendance', description: 'Consistent attendance for Q1', timestamp: '2024-03-30T09:00:00Z' },
-  { id: '3', studentId: 'stu-5', studentName: 'David Lee', milestoneType: 'academic', description: 'Achieved math proficiency level 3', timestamp: '2024-03-25T11:15:00Z' },
-  { id: '4', studentId: 'stu-1', studentName: 'Alex Johnson', milestoneType: 'life-skills', description: 'Completed conflict resolution workshop', timestamp: '2024-03-20T16:45:00Z' },
-  { id: '5', studentId: 'stu-4', studentName: 'Emily Brown', milestoneType: 'academic', description: 'Passed digital skills certification', timestamp: '2024-03-15T10:00:00Z' },
+// Mock Recent Milestones
+export const mockRecentMilestones: RecentMilestone[] = [
+  { id: '1', studentId: 'stu-8', studentName: 'Jessica Taylor', type: 'academic', description: 'Completed job interview preparation', dateAchieved: '2024-03-28', createdAt: '2024-03-28T14:30:00Z' },
+  { id: '2', studentId: 'stu-2', studentName: 'Maria Garcia', type: 'attendance', description: 'Consistent attendance for Q1', dateAchieved: '2024-03-30', createdAt: '2024-03-30T09:00:00Z' },
+  { id: '3', studentId: 'stu-5', studentName: 'David Lee', type: 'academic', description: 'Achieved math proficiency level 3', dateAchieved: '2024-03-25', createdAt: '2024-03-25T11:15:00Z' },
+  { id: '4', studentId: 'stu-1', studentName: 'Alex Johnson', type: 'life-skills', description: 'Completed conflict resolution workshop', dateAchieved: '2024-03-20', createdAt: '2024-03-20T16:45:00Z' },
+  { id: '5', studentId: 'stu-4', studentName: 'Emily Brown', type: 'academic', description: 'Passed digital skills certification', dateAchieved: '2024-03-15', createdAt: '2024-03-15T10:00:00Z' },
 ];
 
 // Mock Program Enrollment
 export const mockProgramEnrollment: ProgramEnrollment[] = [
-  { programId: 'prog-1', programName: 'Foundation Skills', enrollmentCount: 45, percentage: 31 },
-  { programId: 'prog-2', programName: 'Digital Literacy', enrollmentCount: 38, percentage: 27 },
-  { programId: 'prog-3', programName: 'Life Skills Development', enrollmentCount: 32, percentage: 22 },
-  { programId: 'prog-4', programName: 'Career Readiness', enrollmentCount: 28, percentage: 20 },
+  { programId: 'prog-1', programName: 'Foundation Skills', studentCount: 45 },
+  { programId: 'prog-2', programName: 'Digital Literacy', studentCount: 38 },
+  { programId: 'prog-3', programName: 'Life Skills Development', studentCount: 32 },
+  { programId: 'prog-4', programName: 'Career Readiness', studentCount: 28 },
 ];
+
+// Mock Dashboard Stats
+export const mockDashboardStats: DashboardStats = {
+  totalStudents: 143,
+  totalPrograms: 4,
+  milestonesThisQuarter: 47,
+  attendanceRate: 92,
+  quarterGoal: 50,
+  quarterProgress: 73,
+  recentMilestones: mockRecentMilestones,
+  programEnrollment: mockProgramEnrollment,
+};
 
 // Mock Progress Data for Analytics
 export const mockProgressData: ProgressDataPoint[] = [
