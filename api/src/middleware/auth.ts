@@ -68,7 +68,7 @@ function getKey(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback): void {
 // Promisified JWT verification using JWKS
 function verifyTokenWithJwks(token: string): Promise<SupabaseJwtPayload> {
   return new Promise((resolve, reject) => {
-    jwt.verify(token, getKey, { algorithms: ['RS256'] }, (err, decoded) => {
+    jwt.verify(token, getKey, { algorithms: ['ES256', 'RS256'] }, (err, decoded) => {
       if (err) {
         reject(err);
       } else {
