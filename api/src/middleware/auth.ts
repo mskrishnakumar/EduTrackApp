@@ -6,6 +6,8 @@ import { UserEntity } from '../types';
 
 // Supabase URL for JWKS endpoint
 const supabaseUrl = process.env.SUPABASE_URL || '';
+// Legacy JWT secret for HS256 fallback
+const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET || '';
 
 // Create JWKS client to fetch signing keys from Supabase
 const client = supabaseUrl
@@ -125,10 +127,29 @@ export async function verifyAuth(
   }
 
   try {
-    // Verify the JWT token using JWKS (RS256)
-    context.log('[Auth] Verifying JWT token with JWKS...');
+    // Decode token header to see the algorithm
+    const tokenParts = token.split('.');
+    const header = JSON.parse(Buffer.from(tokenParts[0], 'base64').toString());
+    context.log('[Auth] Token header:', { alg: header.alg, kid: header.kid });
 
-    const decoded = await verifyTokenWithJwks(token);
+    let decoded: SupabaseJwtPayload;
+
+    // If token uses HS256 (legacy), verify with JWT secret
+    if (header.alg === 'HS256') {
+      context.log('[Auth] Token uses HS256, verifying with JWT secret...');
+      if (!supabaseJwtSecret) {
+        return {
+          success: false,
+          error: 'HS256 token received but SUPABASE_JWT_SECRET not configured',
+          status: 401,
+        };
+      }
+      decoded = jwt.verify(token, supabaseJwtSecret, { algorithms: ['HS256'] }) as SupabaseJwtPayload;
+    } else {
+      // For ES256/RS256, use JWKS verification
+      context.log('[Auth] Token uses asymmetric algorithm, verifying with JWKS...');
+      decoded = await verifyTokenWithJwks(token);
+    }
 
     if (!decoded.sub) {
       context.log.error('[Auth] Token missing sub (user id)');
