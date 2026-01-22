@@ -87,7 +87,11 @@ export async function verifyAuth(
   request: HttpRequest,
   context: Context
 ): Promise<AuthResult> {
+  // Log all headers to debug Azure SWA proxying
+  context.log('[Auth] All request headers:', JSON.stringify(request.headers, null, 2));
+
   const authHeader = request.headers['authorization'] || request.headers['Authorization'];
+  context.log('[Auth] Authorization header (first 100 chars):', authHeader?.substring(0, 100));
 
   if (!authHeader?.startsWith('Bearer ')) {
     return {
