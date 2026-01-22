@@ -87,21 +87,32 @@ export async function verifyAuth(
   request: HttpRequest,
   context: Context
 ): Promise<AuthResult> {
-  // Log all headers to debug Azure SWA proxying
-  context.log('[Auth] All request headers:', JSON.stringify(request.headers, null, 2));
+  // Azure SWA replaces the Authorization header with its own internal token.
+  // We use X-Supabase-Auth custom header to pass the actual Supabase token.
+  const supabaseToken = request.headers['x-supabase-auth'];
 
+  // Fallback to Authorization header for local development or direct API access
   const authHeader = request.headers['authorization'] || request.headers['Authorization'];
-  context.log('[Auth] Authorization header (first 100 chars):', authHeader?.substring(0, 100));
 
-  if (!authHeader?.startsWith('Bearer ')) {
+  context.log('[Auth] X-Supabase-Auth present:', !!supabaseToken);
+  context.log('[Auth] Authorization header present:', !!authHeader);
+
+  // Prefer X-Supabase-Auth, fall back to Authorization header
+  let token: string | undefined;
+
+  if (supabaseToken) {
+    token = supabaseToken;
+  } else if (authHeader?.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  }
+
+  if (!token) {
     return {
       success: false,
-      error: 'Missing or invalid authorization header',
+      error: 'Missing authentication token. Provide X-Supabase-Auth header or Authorization Bearer token.',
       status: 401,
     };
   }
-
-  const token = authHeader.split(' ')[1];
 
   // Development mode - accept mock token
   if (token === 'mock-token') {

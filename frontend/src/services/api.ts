@@ -36,7 +36,8 @@ export async function apiRequest<T>(
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
+    // Use custom header to bypass Azure SWA's Authorization header replacement
+    ...(token && { 'X-Supabase-Auth': token }),
     ...options.headers,
   };
 
