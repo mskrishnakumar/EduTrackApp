@@ -1,3 +1,6 @@
+// IMPORTANT: Polyfill must be imported FIRST
+import '../polyfills';
+
 import { Context, HttpRequest } from '@azure/functions';
 import * as jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
