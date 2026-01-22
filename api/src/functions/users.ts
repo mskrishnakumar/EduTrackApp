@@ -1,3 +1,6 @@
+// IMPORTANT: Polyfill must be imported FIRST
+import '../polyfills';
+
 import { AzureFunction, Context, HttpRequest } from '@azure/functions';
 import { verifyAuth } from '../middleware/auth';
 import { getTableClient, TABLES, entityToObject } from '../services/tableStorage';

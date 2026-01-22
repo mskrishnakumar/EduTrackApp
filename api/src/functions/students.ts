@@ -1,3 +1,6 @@
+// IMPORTANT: Polyfill must be imported FIRST
+import '../polyfills';
+
 import { AzureFunction, Context, HttpRequest } from '@azure/functions';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyAuth, checkCenterAccess, getQueryCenterId, AuthenticatedUser } from '../middleware/auth';
