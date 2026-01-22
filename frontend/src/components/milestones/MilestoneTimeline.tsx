@@ -2,6 +2,7 @@ import React from 'react';
 import { Badge } from '../common/Badge';
 import { Milestone } from '../../types';
 import { format } from 'date-fns';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface MilestoneTimelineProps {
   milestones: Milestone[];
@@ -21,6 +22,8 @@ const getMilestoneLabel = (type: string) => {
 };
 
 export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
+  const { getTranslatedDescription } = useLanguage();
+
   if (milestones.length === 0) {
     return (
       <div className="bg-white p-8 rounded-card shadow-card text-center">
@@ -52,7 +55,9 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
                 {format(new Date(milestone.dateAchieved), 'MMM d, yyyy')}
               </span>
             </div>
-            <p className="text-text-primary mb-2">{milestone.description}</p>
+            <p className="text-text-primary mb-2">
+              {getTranslatedDescription(milestone.description, milestone.descriptionTranslations)}
+            </p>
             <p className="text-xs text-text-secondary">
               Verified by {milestone.verifiedBy}
             </p>

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import {
@@ -21,6 +22,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <LanguageProvider>
         <Routes>
           {/* Public routes */}
           <Route path={ROUTES.LOGIN} element={<LoginPage />} />
@@ -48,6 +50,7 @@ function App() {
           {/* Redirect unknown routes to dashboard */}
           <Route path="*" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
         </Routes>
+        </LanguageProvider>
       </AuthProvider>
     </BrowserRouter>
   );

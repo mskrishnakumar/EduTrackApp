@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardHeader } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { RecentMilestone } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface RecentActivityProps {
   activities: RecentMilestone[];
@@ -9,6 +10,8 @@ interface RecentActivityProps {
 }
 
 export function RecentActivity({ activities, onViewAll }: RecentActivityProps) {
+  const { getTranslatedDescription } = useLanguage();
+
   const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
     const activityDate = new Date(timestamp);
@@ -77,7 +80,7 @@ export function RecentActivity({ activities, onViewAll }: RecentActivityProps) {
                     activity.type.slice(1)}
               </Badge>
               <span className="text-body text-text-primary">
-                {activity.description}
+                {getTranslatedDescription(activity.description, activity.descriptionTranslations)}
               </span>
             </div>
           </div>

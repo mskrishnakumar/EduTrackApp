@@ -38,16 +38,96 @@ export const mockStudents: Student[] = [
   { id: 'stu-8', name: 'Jessica Taylor', age: 16, programId: 'prog-4', programName: 'Career Readiness', centerId: 'center-1', centerName: 'Downtown Learning Center', enrollmentDate: '2024-01-05', milestoneCount: 18, createdAt: '2024-01-05', updatedAt: '2024-01-05', isActive: true },
 ];
 
-// Mock Milestones
+// Mock Milestones with sample translations
 export const mockMilestones: Milestone[] = [
-  { id: 'ms-1', studentId: 'stu-1', studentName: 'Alex Johnson', type: 'academic', description: 'Completed reading level assessment', dateAchieved: '2024-03-10', verifiedBy: 'Ms. Smith', centerId: 'center-1', createdAt: '2024-03-10', createdBy: 'admin' },
-  { id: 'ms-2', studentId: 'stu-2', studentName: 'Maria Garcia', type: 'life-skills', description: 'Demonstrated leadership in group project', dateAchieved: '2024-03-12', verifiedBy: 'Mr. Davis', centerId: 'center-1', createdAt: '2024-03-12', createdBy: 'admin' },
-  { id: 'ms-3', studentId: 'stu-3', studentName: 'James Wilson', type: 'attendance', description: 'Perfect attendance for March', dateAchieved: '2024-03-31', verifiedBy: 'Ms. Johnson', centerId: 'center-1', createdAt: '2024-03-31', createdBy: 'admin' },
-  { id: 'ms-4', studentId: 'stu-4', studentName: 'Emily Brown', type: 'academic', description: 'Passed digital skills certification', dateAchieved: '2024-03-15', verifiedBy: 'Mr. Thompson', centerId: 'center-2', createdAt: '2024-03-15', createdBy: 'admin' },
-  { id: 'ms-5', studentId: 'stu-1', studentName: 'Alex Johnson', type: 'life-skills', description: 'Completed conflict resolution workshop', dateAchieved: '2024-03-20', verifiedBy: 'Ms. Smith', centerId: 'center-1', createdAt: '2024-03-20', createdBy: 'admin' },
-  { id: 'ms-6', studentId: 'stu-5', studentName: 'David Lee', type: 'academic', description: 'Achieved math proficiency level 3', dateAchieved: '2024-03-25', verifiedBy: 'Mr. Brown', centerId: 'center-2', createdAt: '2024-03-25', createdBy: 'admin' },
-  { id: 'ms-7', studentId: 'stu-8', studentName: 'Jessica Taylor', type: 'academic', description: 'Completed job interview preparation', dateAchieved: '2024-03-28', verifiedBy: 'Ms. Wilson', centerId: 'center-1', createdAt: '2024-03-28', createdBy: 'admin' },
-  { id: 'ms-8', studentId: 'stu-2', studentName: 'Maria Garcia', type: 'attendance', description: 'Consistent attendance for Q1', dateAchieved: '2024-03-30', verifiedBy: 'Mr. Davis', centerId: 'center-1', createdAt: '2024-03-30', createdBy: 'admin' },
+  {
+    id: 'ms-1', studentId: 'stu-1', studentName: 'Alex Johnson', type: 'academic',
+    description: 'Completed reading level assessment',
+    descriptionTranslations: {
+      hi: 'पठन स्तर मूल्यांकन पूर्ण किया',
+      ta: 'வாசிப்பு நிலை மதிப்பீட்டை முடித்தார்',
+      te: 'చదవడం స్థాయి అంచనా పూర్తి చేసారు'
+    },
+    originalLanguage: 'en',
+    dateAchieved: '2024-03-10', verifiedBy: 'Ms. Smith', centerId: 'center-1', createdAt: '2024-03-10', createdBy: 'admin'
+  },
+  {
+    id: 'ms-2', studentId: 'stu-2', studentName: 'Maria Garcia', type: 'life-skills',
+    description: 'Demonstrated leadership in group project',
+    descriptionTranslations: {
+      hi: 'समूह परियोजना में नेतृत्व का प्रदर्शन किया',
+      ta: 'குழு திட்டத்தில் தலைமைத்துவத்தை நிரூபித்தார்',
+      te: 'సమూహ ప్రాజెక్ట్‌లో నాయకత్వాన్ని ప్రదర్శించారు'
+    },
+    originalLanguage: 'en',
+    dateAchieved: '2024-03-12', verifiedBy: 'Mr. Davis', centerId: 'center-1', createdAt: '2024-03-12', createdBy: 'admin'
+  },
+  {
+    id: 'ms-3', studentId: 'stu-3', studentName: 'James Wilson', type: 'attendance',
+    description: 'Perfect attendance for March',
+    descriptionTranslations: {
+      hi: 'मार्च के लिए पूर्ण उपस्थिति',
+      ta: 'மார்ச் மாதத்திற்கான சரியான வருகை',
+      te: 'మార్చి కోసం పర్ఫెక్ట్ హాజరు'
+    },
+    originalLanguage: 'en',
+    dateAchieved: '2024-03-31', verifiedBy: 'Ms. Johnson', centerId: 'center-1', createdAt: '2024-03-31', createdBy: 'admin'
+  },
+  {
+    id: 'ms-4', studentId: 'stu-4', studentName: 'Emily Brown', type: 'academic',
+    description: 'Passed digital skills certification',
+    descriptionTranslations: {
+      hi: 'डिजिटल कौशल प्रमाणन पास किया',
+      ta: 'டிஜிட்டல் திறன் சான்றிதழ் தேர்ச்சி',
+      te: 'డిజిటల్ స్కిల్స్ సర్టిఫికేషన్ పాస్ అయ్యారు'
+    },
+    originalLanguage: 'en',
+    dateAchieved: '2024-03-15', verifiedBy: 'Mr. Thompson', centerId: 'center-2', createdAt: '2024-03-15', createdBy: 'admin'
+  },
+  {
+    id: 'ms-5', studentId: 'stu-1', studentName: 'Alex Johnson', type: 'life-skills',
+    description: 'Completed conflict resolution workshop',
+    descriptionTranslations: {
+      hi: 'संघर्ष समाधान कार्यशाला पूर्ण की',
+      ta: 'மோதல் தீர்வு பட்டறையை முடித்தார்',
+      te: 'సంఘర్షణ పరిష్కార వర్క్‌షాప్ పూర్తి చేసారు'
+    },
+    originalLanguage: 'en',
+    dateAchieved: '2024-03-20', verifiedBy: 'Ms. Smith', centerId: 'center-1', createdAt: '2024-03-20', createdBy: 'admin'
+  },
+  {
+    id: 'ms-6', studentId: 'stu-5', studentName: 'David Lee', type: 'academic',
+    description: 'Achieved math proficiency level 3',
+    descriptionTranslations: {
+      hi: 'गणित दक्षता स्तर 3 प्राप्त किया',
+      ta: 'கணித திறன் நிலை 3 அடைந்தார்',
+      te: 'గణిత ప్రావీణ్యం స్థాయి 3 సాధించారు'
+    },
+    originalLanguage: 'en',
+    dateAchieved: '2024-03-25', verifiedBy: 'Mr. Brown', centerId: 'center-2', createdAt: '2024-03-25', createdBy: 'admin'
+  },
+  {
+    id: 'ms-7', studentId: 'stu-8', studentName: 'Jessica Taylor', type: 'academic',
+    description: 'Completed job interview preparation',
+    descriptionTranslations: {
+      hi: 'नौकरी साक्षात्कार की तैयारी पूर्ण की',
+      ta: 'வேலை நேர்காணல் தயாரிப்பை முடித்தார்',
+      te: 'ఉద్యోగ ఇంటర్వ్యూ తయారీ పూర్తి చేసారు'
+    },
+    originalLanguage: 'en',
+    dateAchieved: '2024-03-28', verifiedBy: 'Ms. Wilson', centerId: 'center-1', createdAt: '2024-03-28', createdBy: 'admin'
+  },
+  {
+    id: 'ms-8', studentId: 'stu-2', studentName: 'Maria Garcia', type: 'attendance',
+    description: 'Consistent attendance for Q1',
+    descriptionTranslations: {
+      hi: 'Q1 के लिए निरंतर उपस्थिति',
+      ta: 'Q1 க்கான நிலையான வருகை',
+      te: 'Q1 కోసం స్థిరమైన హాజరు'
+    },
+    originalLanguage: 'en',
+    dateAchieved: '2024-03-30', verifiedBy: 'Mr. Davis', centerId: 'center-1', createdAt: '2024-03-30', createdBy: 'admin'
+  },
 ];
 
 // Generate attendance records for a date
@@ -63,13 +143,63 @@ export function generateAttendanceForDate(date: string): AttendanceRecord[] {
   }));
 }
 
-// Mock Recent Milestones
+// Mock Recent Milestones with translations
 export const mockRecentMilestones: RecentMilestone[] = [
-  { id: '1', studentId: 'stu-8', studentName: 'Jessica Taylor', type: 'academic', description: 'Completed job interview preparation', dateAchieved: '2024-03-28', createdAt: '2024-03-28T14:30:00Z' },
-  { id: '2', studentId: 'stu-2', studentName: 'Maria Garcia', type: 'attendance', description: 'Consistent attendance for Q1', dateAchieved: '2024-03-30', createdAt: '2024-03-30T09:00:00Z' },
-  { id: '3', studentId: 'stu-5', studentName: 'David Lee', type: 'academic', description: 'Achieved math proficiency level 3', dateAchieved: '2024-03-25', createdAt: '2024-03-25T11:15:00Z' },
-  { id: '4', studentId: 'stu-1', studentName: 'Alex Johnson', type: 'life-skills', description: 'Completed conflict resolution workshop', dateAchieved: '2024-03-20', createdAt: '2024-03-20T16:45:00Z' },
-  { id: '5', studentId: 'stu-4', studentName: 'Emily Brown', type: 'academic', description: 'Passed digital skills certification', dateAchieved: '2024-03-15', createdAt: '2024-03-15T10:00:00Z' },
+  {
+    id: '1', studentId: 'stu-8', studentName: 'Jessica Taylor', type: 'academic',
+    description: 'Completed job interview preparation',
+    descriptionTranslations: {
+      hi: 'नौकरी साक्षात्कार की तैयारी पूर्ण की',
+      ta: 'வேலை நேர்காணல் தயாரிப்பை முடித்தார்',
+      te: 'ఉద్యోగ ఇంటర్వ్యూ తయారీ పూర్తి చేసారు'
+    },
+    originalLanguage: 'en',
+    dateAchieved: '2024-03-28', createdAt: '2024-03-28T14:30:00Z'
+  },
+  {
+    id: '2', studentId: 'stu-2', studentName: 'Maria Garcia', type: 'attendance',
+    description: 'Consistent attendance for Q1',
+    descriptionTranslations: {
+      hi: 'Q1 के लिए निरंतर उपस्थिति',
+      ta: 'Q1 க்கான நிலையான வருகை',
+      te: 'Q1 కోసం స్థిరమైన హాజరు'
+    },
+    originalLanguage: 'en',
+    dateAchieved: '2024-03-30', createdAt: '2024-03-30T09:00:00Z'
+  },
+  {
+    id: '3', studentId: 'stu-5', studentName: 'David Lee', type: 'academic',
+    description: 'Achieved math proficiency level 3',
+    descriptionTranslations: {
+      hi: 'गणित दक्षता स्तर 3 प्राप्त किया',
+      ta: 'கணித திறன் நிலை 3 அடைந்தார்',
+      te: 'గణిత ప్రావీణ్యం స్థాయి 3 సాధించారు'
+    },
+    originalLanguage: 'en',
+    dateAchieved: '2024-03-25', createdAt: '2024-03-25T11:15:00Z'
+  },
+  {
+    id: '4', studentId: 'stu-1', studentName: 'Alex Johnson', type: 'life-skills',
+    description: 'Completed conflict resolution workshop',
+    descriptionTranslations: {
+      hi: 'संघर्ष समाधान कार्यशाला पूर्ण की',
+      ta: 'மோதல் தீர்வு பட்டறையை முடித்தார்',
+      te: 'సంఘర్షణ పరిష్కార వర్క్‌షాప్ పూర్తి చేసారు'
+    },
+    originalLanguage: 'en',
+    dateAchieved: '2024-03-20', createdAt: '2024-03-20T16:45:00Z'
+  },
+  {
+    id: '5', studentId: 'stu-4', studentName: 'Emily Brown', type: 'academic',
+    description: 'Passed digital skills certification',
+    descriptionTranslations: {
+      hi: 'डिजिटल कौशल प्रमाणन पास किया',
+      ta: 'டிஜிட்டல் திறன் சான்றிதழ் தேர்ச்சி',
+      te: 'డిజిటల్ స్కిల్స్ సర్టిఫికేషన్ పాస్ అయ్యారు'
+    },
+    originalLanguage: 'en',
+    dateAchieved: '2024-03-15', createdAt: '2024-03-15T10:00:00Z'
+  },
 ];
 
 // Mock Program Enrollment

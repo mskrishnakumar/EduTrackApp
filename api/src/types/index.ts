@@ -62,6 +62,8 @@ export interface Milestone {
   studentName?: string;
   type: MilestoneType;
   description: string;
+  descriptionTranslations?: Record<string, string>; // { "hi": "Hindi text", "ta": "Tamil text", "te": "Telugu text" }
+  originalLanguage?: string; // Detected language of original description
   dateAchieved: string;
   verifiedBy: string;
   centerId?: string;
@@ -149,6 +151,8 @@ export interface RecentMilestone {
   studentName: string;
   type: MilestoneType;
   description: string;
+  descriptionTranslations?: Record<string, string>;
+  originalLanguage?: string;
   dateAchieved: string;
   createdAt: string;
 }
@@ -212,6 +216,8 @@ export interface MilestoneEntity {
   rowKey: string; // milestoneId (timestamp-based)
   type: MilestoneType;
   description: string;
+  descriptionTranslations?: string; // JSON string of Record<string, string>
+  originalLanguage?: string; // Detected language of original description
   dateAchieved: string;
   verifiedBy: string;
   centerId: string;

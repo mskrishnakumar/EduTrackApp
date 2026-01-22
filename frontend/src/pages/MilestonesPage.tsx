@@ -12,8 +12,10 @@ import { MILESTONE_TYPE_OPTIONS } from '../constants/milestoneTypes';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { getStudentDetailRoute } from '../constants/routes';
+import { useLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from '../context/LanguageContext';
 
 export function MilestonesPage() {
+  const { language, setLanguage, getTranslatedDescription } = useLanguage();
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -172,13 +174,25 @@ export function MilestonesPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold text-text-primary">Milestones</h2>
-        <Button
-          variant="primary"
-          leftIcon={<PlusIcon className="w-5 h-5" />}
-          onClick={() => setIsFormOpen(true)}
-        >
-          Add Milestone
-        </Button>
+        <div className="flex items-center gap-4">
+          {/* Language Selector */}
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
+            className="px-3 py-2 border border-gray-border rounded-input text-sm bg-white focus:outline-none focus:border-primary"
+          >
+            {Object.entries(SUPPORTED_LANGUAGES).map(([code, name]) => (
+              <option key={code} value={code}>{name}</option>
+            ))}
+          </select>
+          <Button
+            variant="primary"
+            leftIcon={<PlusIcon className="w-5 h-5" />}
+            onClick={() => setIsFormOpen(true)}
+          >
+            Add Milestone
+          </Button>
+        </div>
       </div>
 
       {/* Error Message */}
@@ -227,7 +241,9 @@ export function MilestonesPage() {
                       {milestone.type === 'academic' ? 'Academic' : milestone.type === 'life-skills' ? 'Life Skills' : 'Attendance'}
                     </Badge>
                   </div>
-                  <p className="text-text-secondary text-sm mb-2">{milestone.description}</p>
+                  <p className="text-text-secondary text-sm mb-2">
+                    {getTranslatedDescription(milestone.description, milestone.descriptionTranslations)}
+                  </p>
                   <div className="flex items-center gap-4 text-xs text-text-secondary">
                     <span>
                       {format(new Date(milestone.dateAchieved), 'MMM d, yyyy')}

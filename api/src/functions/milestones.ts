@@ -4,16 +4,29 @@ import '../polyfills';
 import { AzureFunction, Context, HttpRequest } from '@azure/functions';
 import { verifyAuth, checkCenterAccess } from '../middleware/auth';
 import { getTableClient, TABLES, entityToObject, createTimestampRowKey } from '../services/tableStorage';
+import { translateText, isTranslatorConfigured } from '../services/translatorService';
 import { Milestone, MilestoneEntity, CreateMilestoneRequest, UpdateMilestoneRequest, ApiResponse, StudentEntity } from '../types';
 
 // Helper to map entity to Milestone
 function mapEntityToMilestone(entity: MilestoneEntity, studentName?: string): Milestone {
+  // Parse translations from JSON string if present
+  let descriptionTranslations: Record<string, string> | undefined;
+  if (entity.descriptionTranslations) {
+    try {
+      descriptionTranslations = JSON.parse(entity.descriptionTranslations);
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
   return {
     id: entity.rowKey,
     studentId: entity.partitionKey,
     studentName: studentName || entity.studentName,
     type: entity.type,
     description: entity.description,
+    descriptionTranslations,
+    originalLanguage: entity.originalLanguage,
     dateAchieved: entity.dateAchieved,
     verifiedBy: entity.verifiedBy,
     centerId: entity.centerId,
@@ -151,11 +164,30 @@ export const createMilestone: AzureFunction = async function (context: Context, 
     const milestoneId = createTimestampRowKey();
     const now = new Date().toISOString();
 
+    // Translate description if translator is configured
+    let descriptionTranslations: string | undefined;
+    let originalLanguage: string | undefined;
+
+    if (isTranslatorConfigured()) {
+      try {
+        const translationResult = await translateText(body.description);
+        if (translationResult.success && translationResult.translations) {
+          descriptionTranslations = JSON.stringify(translationResult.translations);
+          originalLanguage = translationResult.detectedLanguage;
+        }
+      } catch (translationError) {
+        // Log but don't fail - translation is optional enhancement
+        context.log.warn('Translation failed, continuing without translations:', translationError);
+      }
+    }
+
     const milestoneEntity: MilestoneEntity = {
       partitionKey: body.studentId,
       rowKey: milestoneId,
       type: body.type,
       description: body.description,
+      descriptionTranslations,
+      originalLanguage,
       dateAchieved: body.dateAchieved,
       verifiedBy: body.verifiedBy || '',
       centerId: studentCenterId,
@@ -211,13 +243,32 @@ export const updateMilestone: AzureFunction = async function (context: Context, 
         return;
       }
 
+      // Re-translate if description changed
+      let newTranslations: string | undefined;
+      let newOriginalLanguage: string | undefined;
+
+      if (body.description && body.description !== entity.description && isTranslatorConfigured()) {
+        try {
+          const translationResult = await translateText(body.description);
+          if (translationResult.success && translationResult.translations) {
+            newTranslations = JSON.stringify(translationResult.translations);
+            newOriginalLanguage = translationResult.detectedLanguage;
+          }
+        } catch (translationError) {
+          context.log.warn('Translation failed during update:', translationError);
+        }
+      }
+
       // Update fields
+      const entityObj = entityToObject<MilestoneEntity>(entity);
       const updatedEntity: MilestoneEntity = {
-        ...entityToObject<MilestoneEntity>(entity),
+        ...entityObj,
         partitionKey: entity.partitionKey,
         rowKey: milestoneId,
         ...(body.type && { type: body.type }),
         ...(body.description && { description: body.description }),
+        ...(newTranslations && { descriptionTranslations: newTranslations }),
+        ...(newOriginalLanguage && { originalLanguage: newOriginalLanguage }),
         ...(body.dateAchieved && { dateAchieved: body.dateAchieved }),
         ...(body.verifiedBy !== undefined && { verifiedBy: body.verifiedBy }),
         updatedAt: new Date().toISOString(),
