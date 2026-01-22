@@ -6,9 +6,19 @@ import { User, UserEntity } from '../types';
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
 
+// Log configuration status (not the actual values for security)
+console.log('[Auth] Supabase config check:', {
+  hasUrl: !!supabaseUrl,
+  urlLength: supabaseUrl.length,
+  hasServiceKey: !!supabaseServiceKey,
+  serviceKeyLength: supabaseServiceKey.length,
+});
+
 const supabase = supabaseUrl && supabaseServiceKey
   ? createClient(supabaseUrl, supabaseServiceKey)
   : null;
+
+console.log('[Auth] Supabase client initialized:', !!supabase);
 
 export interface AuthenticatedUser {
   id: string;
@@ -74,15 +84,23 @@ export async function verifyAuth(
 
   try {
     // Verify the JWT token with Supabase
+    context.log('[Auth] Verifying token with Supabase...');
     const { data: { user: supabaseUser }, error } = await supabase.auth.getUser(token);
 
     if (error || !supabaseUser) {
+      context.log.error('[Auth] Token verification failed:', {
+        error: error?.message,
+        errorCode: error?.code,
+        errorStatus: error?.status,
+        hasUser: !!supabaseUser,
+      });
       return {
         success: false,
-        error: 'Invalid or expired token',
+        error: `Invalid or expired token: ${error?.message || 'No user returned'}`,
         status: 401,
       };
     }
+    context.log('[Auth] Token verified successfully for user:', supabaseUser.id);
 
     // Fetch user profile from Table Storage
     try {
