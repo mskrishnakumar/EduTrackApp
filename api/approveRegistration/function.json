@@ -1,0 +1,19 @@
+{
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": ["put"],
+      "route": "registrations/{id}/approve"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "res"
+    }
+  ],
+  "scriptFile": "../dist/src/functions/registrations.js",
+  "entryPoint": "approveRegistration"
+}

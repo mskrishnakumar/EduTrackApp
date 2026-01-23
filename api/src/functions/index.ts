@@ -12,3 +12,4 @@ export * from './dashboard';
 export * from './users';
 export * from './centers';
 export * from './oauthResolve';
+export * from './registrations';
