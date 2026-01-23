@@ -28,6 +28,9 @@ import type {
   ApiResponse,
   PaginatedResponse,
   StudentFilters,
+  StudentDashboardStats,
+  Notification,
+  StudentRegistration,
 } from '../types';
 
 // Token will be set by AuthContext
@@ -204,6 +207,89 @@ export async function getMilestoneStats(): Promise<ApiResponse<MilestoneStats[]>
   return api.get<MilestoneStats[]>('/analytics/milestones', authToken);
 }
 
+// ==================== Student Portal ====================
+
+export async function getStudentDashboard(studentId: string): Promise<ApiResponse<StudentDashboardStats>> {
+  if (USE_MOCK_API) {
+    return mockApi.studentPortal.getDashboard(studentId);
+  }
+  return api.get<StudentDashboardStats>(`/student-portal/dashboard/${studentId}`, authToken);
+}
+
+export async function getStudentPortalMilestones(studentId: string): Promise<ApiResponse<Milestone[]>> {
+  if (USE_MOCK_API) {
+    return mockApi.studentPortal.getMilestones(studentId);
+  }
+  return api.get<Milestone[]>(`/student-portal/milestones/${studentId}`, authToken);
+}
+
+export async function getStudentAttendanceHistory(
+  studentId: string,
+  year: number,
+  month: number
+): Promise<ApiResponse<AttendanceRecord[]>> {
+  if (USE_MOCK_API) {
+    return mockApi.studentPortal.getAttendanceHistory(studentId, year, month);
+  }
+  return api.get<AttendanceRecord[]>(
+    `/student-portal/attendance/${studentId}?year=${year}&month=${month}`,
+    authToken
+  );
+}
+
+// ==================== Notifications ====================
+
+export async function getNotifications(userId: string): Promise<ApiResponse<Notification[]>> {
+  if (USE_MOCK_API) {
+    return mockApi.notifications.getAll(userId);
+  }
+  return api.get<Notification[]>(`/notifications?userId=${userId}`, authToken);
+}
+
+export async function markNotificationRead(notificationId: string): Promise<ApiResponse<void>> {
+  if (USE_MOCK_API) {
+    return mockApi.notifications.markRead(notificationId);
+  }
+  return api.put<void>(`/notifications/${notificationId}/read`, {}, authToken);
+}
+
+export async function markAllNotificationsRead(userId: string): Promise<ApiResponse<void>> {
+  if (USE_MOCK_API) {
+    return mockApi.notifications.markAllRead(userId);
+  }
+  return api.put<void>(`/notifications/mark-all-read`, { userId }, authToken);
+}
+
+// ==================== Registrations ====================
+
+export async function getRegistrations(): Promise<ApiResponse<StudentRegistration[]>> {
+  if (USE_MOCK_API) {
+    return mockApi.registrations.getAll();
+  }
+  return api.get<StudentRegistration[]>('/registrations', authToken);
+}
+
+export async function approveRegistration(
+  registrationId: string,
+  studentId: string
+): Promise<ApiResponse<StudentRegistration>> {
+  if (USE_MOCK_API) {
+    return mockApi.registrations.approve(registrationId, studentId);
+  }
+  return api.put<StudentRegistration>(
+    `/registrations/${registrationId}/approve`,
+    { studentId },
+    authToken
+  );
+}
+
+export async function rejectRegistration(registrationId: string): Promise<ApiResponse<StudentRegistration>> {
+  if (USE_MOCK_API) {
+    return mockApi.registrations.reject(registrationId);
+  }
+  return api.put<StudentRegistration>(`/registrations/${registrationId}/reject`, {}, authToken);
+}
+
 // Export unified data service
 export const dataService = {
   setAuthToken,
@@ -241,5 +327,20 @@ export const dataService = {
   analytics: {
     getProgressData: getProgressData,
     getMilestoneStats: getMilestoneStats,
+  },
+  studentPortal: {
+    getDashboard: getStudentDashboard,
+    getMilestones: getStudentPortalMilestones,
+    getAttendanceHistory: getStudentAttendanceHistory,
+  },
+  notifications: {
+    getAll: getNotifications,
+    markRead: markNotificationRead,
+    markAllRead: markAllNotificationsRead,
+  },
+  registrations: {
+    getAll: getRegistrations,
+    approve: approveRegistration,
+    reject: rejectRegistration,
   },
 };

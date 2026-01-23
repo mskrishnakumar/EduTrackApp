@@ -18,6 +18,9 @@ import type {
   ApiResponse,
   PaginatedResponse,
   StudentFilters,
+  StudentDashboardStats,
+  Notification,
+  StudentRegistration,
 } from '../types';
 
 import {
@@ -29,7 +32,10 @@ import {
   mockProgressData,
   mockMilestoneStats,
   mockAttendanceSummary,
+  mockNotifications,
+  mockRegistrations,
   generateAttendanceForDate,
+  generateStudentAttendanceHistory,
   delay,
   generateId,
 } from './mockData';
@@ -373,6 +379,137 @@ export async function getMilestoneStats(): Promise<ApiResponse<MilestoneStats[]>
   return { success: true, data: mockMilestoneStats };
 }
 
+// ==================== Student Portal ====================
+
+// In-memory notifications and registrations state
+let notifications = [...mockNotifications];
+let registrations = [...mockRegistrations];
+
+export async function getStudentDashboard(studentId: string): Promise<ApiResponse<StudentDashboardStats>> {
+  await delay(MOCK_DELAY);
+
+  const student = students.find(s => s.id === studentId);
+  if (!student) {
+    return { success: false, error: 'Student not found' };
+  }
+
+  const studentMilestones = milestones.filter(m => m.studentId === studentId);
+  const now = new Date();
+  const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+  const milestonesThisQuarter = studentMilestones.filter(
+    m => new Date(m.dateAchieved) >= quarterStart
+  ).length;
+
+  const summary = mockAttendanceSummary.find(s => s.studentId === studentId);
+
+  const stats: StudentDashboardStats = {
+    studentName: student.name,
+    programName: student.programName,
+    centerName: student.centerName,
+    enrollmentDate: student.enrollmentDate,
+    totalMilestones: studentMilestones.length,
+    milestonesThisQuarter,
+    attendanceRate: summary?.attendanceRate || 0,
+    totalDaysPresent: summary?.presentDays || 0,
+    totalDaysAbsent: summary?.absentDays || 0,
+    totalDays: summary?.totalDays || 0,
+    recentMilestones: studentMilestones.slice(-5).reverse(),
+  };
+
+  return { success: true, data: stats };
+}
+
+export async function getStudentMilestonesPortal(studentId: string): Promise<ApiResponse<Milestone[]>> {
+  await delay(MOCK_DELAY);
+
+  const studentMilestones = milestones
+    .filter(m => m.studentId === studentId)
+    .sort((a, b) => new Date(b.dateAchieved).getTime() - new Date(a.dateAchieved).getTime());
+
+  return { success: true, data: studentMilestones };
+}
+
+export async function getStudentAttendanceHistory(
+  studentId: string,
+  year: number,
+  month: number
+): Promise<ApiResponse<AttendanceRecord[]>> {
+  await delay(MOCK_DELAY);
+
+  const records = generateStudentAttendanceHistory(studentId, year, month);
+  return { success: true, data: records };
+}
+
+// ==================== Notifications ====================
+
+export async function getNotifications(userId: string): Promise<ApiResponse<Notification[]>> {
+  await delay(MOCK_DELAY);
+
+  const userNotifications = notifications
+    .filter(n => n.userId === userId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  return { success: true, data: userNotifications };
+}
+
+export async function markNotificationRead(notificationId: string): Promise<ApiResponse<void>> {
+  await delay(MOCK_DELAY);
+
+  const index = notifications.findIndex(n => n.id === notificationId);
+  if (index !== -1) {
+    notifications[index] = { ...notifications[index], isRead: true };
+  }
+  return { success: true };
+}
+
+export async function markAllNotificationsRead(userId: string): Promise<ApiResponse<void>> {
+  await delay(MOCK_DELAY);
+
+  notifications = notifications.map(n =>
+    n.userId === userId ? { ...n, isRead: true } : n
+  );
+  return { success: true };
+}
+
+// ==================== Registrations ====================
+
+export async function getRegistrations(): Promise<ApiResponse<StudentRegistration[]>> {
+  await delay(MOCK_DELAY);
+  return { success: true, data: registrations };
+}
+
+export async function approveRegistration(
+  registrationId: string,
+  studentId: string
+): Promise<ApiResponse<StudentRegistration>> {
+  await delay(MOCK_DELAY);
+
+  const index = registrations.findIndex(r => r.id === registrationId);
+  if (index === -1) {
+    return { success: false, error: 'Registration not found' };
+  }
+
+  registrations[index] = {
+    ...registrations[index],
+    status: 'approved',
+    studentId,
+  };
+
+  return { success: true, data: registrations[index] };
+}
+
+export async function rejectRegistration(registrationId: string): Promise<ApiResponse<StudentRegistration>> {
+  await delay(MOCK_DELAY);
+
+  const index = registrations.findIndex(r => r.id === registrationId);
+  if (index === -1) {
+    return { success: false, error: 'Registration not found' };
+  }
+
+  registrations[index] = { ...registrations[index], status: 'rejected' };
+  return { success: true, data: registrations[index] };
+}
+
 // Export all mock functions as a unified API
 export const mockApi = {
   students: {
@@ -409,5 +546,20 @@ export const mockApi = {
   analytics: {
     getProgressData: getProgressData,
     getMilestoneStats: getMilestoneStats,
+  },
+  studentPortal: {
+    getDashboard: getStudentDashboard,
+    getMilestones: getStudentMilestonesPortal,
+    getAttendanceHistory: getStudentAttendanceHistory,
+  },
+  notifications: {
+    getAll: getNotifications,
+    markRead: markNotificationRead,
+    markAllRead: markAllNotificationsRead,
+  },
+  registrations: {
+    getAll: getRegistrations,
+    approve: approveRegistration,
+    reject: rejectRegistration,
   },
 };

@@ -10,6 +10,8 @@ import type {
   ProgressDataPoint,
   MilestoneStats,
   AttendanceSummary,
+  Notification,
+  StudentRegistration,
 } from '../types';
 
 // Mock Centers
@@ -258,3 +260,113 @@ export const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve
 
 // Helper to generate UUID
 export const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+// Mock Notifications (for student user stu-1)
+export const mockNotifications: Notification[] = [
+  {
+    id: 'notif-1',
+    userId: 'mock-student-user-id',
+    type: 'milestone',
+    title: 'New Milestone Achieved!',
+    message: 'You completed the reading level assessment.',
+    isRead: false,
+    relatedId: 'ms-1',
+    createdAt: '2024-03-10T10:00:00Z',
+  },
+  {
+    id: 'notif-2',
+    userId: 'mock-student-user-id',
+    type: 'attendance',
+    title: 'Attendance Streak',
+    message: 'You have been present for 10 consecutive days!',
+    isRead: true,
+    createdAt: '2024-03-08T09:00:00Z',
+  },
+  {
+    id: 'notif-3',
+    userId: 'mock-student-user-id',
+    type: 'program',
+    title: 'Program Update',
+    message: 'Foundation Skills program schedule has been updated.',
+    isRead: false,
+    relatedId: 'prog-1',
+    createdAt: '2024-03-05T14:30:00Z',
+  },
+  {
+    id: 'notif-4',
+    userId: 'mock-student-user-id',
+    type: 'milestone',
+    title: 'Life Skills Achievement',
+    message: 'You completed the conflict resolution workshop.',
+    isRead: true,
+    relatedId: 'ms-5',
+    createdAt: '2024-03-20T16:00:00Z',
+  },
+  {
+    id: 'notif-5',
+    userId: 'mock-student-user-id',
+    type: 'general',
+    title: 'Welcome to EduTrack',
+    message: 'Welcome to the student portal! Track your milestones and attendance here.',
+    isRead: true,
+    createdAt: '2024-02-15T08:00:00Z',
+  },
+];
+
+// Mock Registrations
+export const mockRegistrations: StudentRegistration[] = [
+  {
+    id: 'reg-1',
+    email: 'student@edutrack.com',
+    displayName: 'Alex Johnson',
+    status: 'approved',
+    studentId: 'stu-1',
+    createdAt: '2024-02-14T10:00:00Z',
+  },
+  {
+    id: 'reg-2',
+    email: 'newstudent@edutrack.com',
+    displayName: 'New Student',
+    status: 'pending',
+    createdAt: '2024-03-25T11:00:00Z',
+  },
+];
+
+// Generate attendance history for a specific student and month
+export function generateStudentAttendanceHistory(
+  studentId: string,
+  year: number,
+  month: number
+): AttendanceRecord[] {
+  const student = mockStudents.find(s => s.id === studentId);
+  if (!student) return [];
+
+  const records: AttendanceRecord[] = [];
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+
+  // Use a seeded approach based on day so results are consistent
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month, day);
+    // Skip weekends
+    if (date.getDay() === 0 || date.getDay() === 6) continue;
+    // Skip future dates
+    if (date > today) continue;
+
+    // Deterministic "random" based on day + month + studentId for consistency
+    const seed = (day * 7 + month * 31 + year) % 100;
+    const status: 'present' | 'absent' = seed < 88 ? 'present' : 'absent';
+
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    records.push({
+      studentId,
+      studentName: student.name,
+      date: dateStr,
+      status,
+      centerId: student.centerId,
+      markedBy: 'System',
+      markedAt: dateStr,
+    });
+  }
+  return records;
+}
