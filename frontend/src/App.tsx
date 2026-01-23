@@ -16,6 +16,7 @@ import {
   AttendancePage,
   AnalyticsPage,
   ReportsPage,
+  RegistrationsPage,
   SettingsPage,
   StudentDashboardPage,
   StudentMilestonesPage,
@@ -63,6 +64,7 @@ function App() {
             <Route path={ROUTES.ATTENDANCE} element={<AttendancePage />} />
             <Route path={ROUTES.ANALYTICS} element={<AnalyticsPage />} />
             <Route path={ROUTES.REPORTS} element={<ReportsPage />} />
+            <Route path={ROUTES.REGISTRATIONS} element={<RegistrationsPage />} />
             <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
           </Route>
 

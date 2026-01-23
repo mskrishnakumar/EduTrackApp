@@ -7,6 +7,7 @@ import {
   CheckCircleIcon,
   CalendarIcon,
   DocumentTextIcon,
+  ClipboardDocumentCheckIcon,
   Cog6ToothIcon,
   MagnifyingGlassIcon,
   Bars3Icon,
@@ -31,6 +32,7 @@ const adminNavItems = [
   { path: ROUTES.MILESTONES, label: 'Milestones', icon: CheckCircleIcon },
   { path: ROUTES.ATTENDANCE, label: 'Attendance', icon: CalendarIcon },
   { path: ROUTES.REPORTS, label: 'Reports', icon: DocumentTextIcon },
+  { path: ROUTES.REGISTRATIONS, label: 'Registrations', icon: ClipboardDocumentCheckIcon },
 ];
 
 const studentNavItems = [

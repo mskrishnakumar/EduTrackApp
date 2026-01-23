@@ -41,6 +41,7 @@ export interface Student {
 
 export interface CreateStudentRequest {
   name: string;
+  email?: string;
   age: number;
   programId: string;
   enrollmentDate: string;

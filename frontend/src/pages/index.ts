@@ -9,6 +9,7 @@ export { MilestonesPage } from './MilestonesPage';
 export { AttendancePage } from './AttendancePage';
 export { AnalyticsPage } from './AnalyticsPage';
 export { ReportsPage } from './ReportsPage';
+export { RegistrationsPage } from './RegistrationsPage';
 export { SettingsPage } from './SettingsPage';
 export { StudentDashboardPage } from './StudentDashboardPage';
 export { StudentMilestonesPage } from './StudentMilestonesPage';

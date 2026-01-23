@@ -27,6 +27,7 @@ export function StudentForm({
   const [centers, setCenters] = useState<Center[]>([]);
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
+    email: initialData?.email || '',
     age: initialData?.age?.toString() || '',
     programId: initialData?.programId || '',
     centerId: initialData?.centerId || '',
@@ -62,6 +63,10 @@ export function StudentForm({
       newErrors.name = 'Name is required';
     }
 
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
     if (!formData.age || parseInt(formData.age) < 5 || parseInt(formData.age) > 25) {
       newErrors.age = 'Age must be between 5 and 25';
     }
@@ -91,6 +96,7 @@ export function StudentForm({
     try {
       await onSubmit({
         name: formData.name.trim(),
+        email: formData.email.trim() || undefined,
         age: parseInt(formData.age),
         programId: formData.programId,
         centerId: formData.centerId,
@@ -100,6 +106,7 @@ export function StudentForm({
       // Reset form
       setFormData({
         name: '',
+        email: '',
         age: '',
         programId: '',
         centerId: centers.length === 1 ? centers[0].id : '',
@@ -145,6 +152,16 @@ export function StudentForm({
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           error={errors.name}
           required
+        />
+
+        <Input
+          type="email"
+          label="Email"
+          placeholder="student@school.edu"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          error={errors.email}
+          helperText="Used for Google OAuth sign-in matching"
         />
 
         <Input

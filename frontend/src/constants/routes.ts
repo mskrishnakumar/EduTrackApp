@@ -10,6 +10,7 @@ export const ROUTES = {
   MILESTONES: '/milestones',
   ATTENDANCE: '/attendance',
   ANALYTICS: '/analytics',
+  REGISTRATIONS: '/registrations',
   REPORTS: '/reports',
   SETTINGS: '/settings',
   // Student portal routes
