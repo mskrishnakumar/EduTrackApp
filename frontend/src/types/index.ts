@@ -275,3 +275,15 @@ export interface StudentRegistration {
   studentId?: string;
   createdAt: string;
 }
+
+// OAuth Types
+export type OAuthResolveStatus = 'active' | 'pending_approval' | 'rejected';
+
+export interface OAuthResolveResponse {
+  status: OAuthResolveStatus;
+  role?: UserRole;
+  studentId?: string;
+  displayName?: string;
+  autoLinked?: boolean;
+  registrationId?: string;
+}

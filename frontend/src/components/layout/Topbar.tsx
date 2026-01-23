@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   MagnifyingGlassIcon,
   Cog6ToothIcon,
@@ -7,6 +7,7 @@ import {
   Bars3Icon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import { ROUTES } from '../../constants/routes';
 
 interface TopbarProps {
@@ -30,7 +31,9 @@ const pageTitles: Record<string, string> = {
 
 export function Topbar({ onMobileMenuToggle }: TopbarProps) {
   const { user } = useAuth();
+  const { unreadCount } = useNotifications();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const getPageTitle = () => {
     // Check for exact match first
@@ -88,10 +91,16 @@ export function Topbar({ onMobileMenuToggle }: TopbarProps) {
         </button>
 
         {/* Notifications */}
-        <button className="w-10 h-10 rounded-input bg-gray-bg flex items-center justify-center text-text-secondary hover:bg-gray-200 hover:text-text-primary transition-all relative">
+        <button
+          onClick={() => user?.role === 'student' && navigate(ROUTES.STUDENT_NOTIFICATIONS)}
+          className="w-10 h-10 rounded-input bg-gray-bg flex items-center justify-center text-text-secondary hover:bg-gray-200 hover:text-text-primary transition-all relative"
+        >
           <BellIcon className="w-5 h-5" />
-          {/* Notification badge */}
-          <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 rounded-full text-white text-[10px] font-bold border-2 border-white">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
         </button>
 
         {/* User Avatar */}

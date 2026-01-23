@@ -11,6 +11,7 @@ export const TABLES = {
   PROGRAMS: 'Programs',
   ATTENDANCE_BY_DATE: 'AttendanceByDate',
   ATTENDANCE_BY_STUDENT: 'AttendanceByStudent',
+  REGISTRATIONS: 'Registrations',
 } as const;
 
 // Cache for table clients that have been initialized

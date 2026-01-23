@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabase';
-import { User } from '../types';
+import { User, OAuthResolveStatus, OAuthResolveResponse } from '../types';
 import { api } from '../services/api';
 import { setAuthToken } from '../services/dataService';
 
@@ -10,7 +10,9 @@ interface AuthContextType {
   supabaseUser: SupabaseUser | null;
   session: Session | null;
   loading: boolean;
+  oauthStatus: OAuthResolveStatus | null;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   getToken: () => Promise<string | null>;
 }
@@ -48,8 +50,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [oauthStatus, setOauthStatus] = useState<OAuthResolveStatus | null>(null);
 
-  const loadUserProfile = useCallback(async (userId: string, email: string, token: string) => {
+  const resolveOAuthUser = useCallback(async (userId: string, email: string, token: string, displayName?: string) => {
+    try {
+      const response = await api.post<OAuthResolveResponse>('/auth/oauth-resolve', {}, token);
+      if (response.success && response.data) {
+        if (response.data.status === 'active') {
+          setUser({
+            id: userId,
+            email: email,
+            displayName: response.data.displayName || displayName || email.split('@')[0],
+            role: 'student',
+            centerId: null,
+            centerName: null,
+            studentId: response.data.studentId || null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+          setOauthStatus('active');
+        } else {
+          setOauthStatus(response.data.status);
+          setUser(null);
+        }
+      } else {
+        setOauthStatus('pending_approval');
+        setUser(null);
+      }
+    } catch (error) {
+      console.error('Error resolving OAuth user:', error);
+      setOauthStatus('pending_approval');
+      setUser(null);
+    }
+  }, []);
+
+  const loadUserProfile = useCallback(async (userId: string, email: string, token: string, isGoogleUser?: boolean, googleDisplayName?: string) => {
+    if (isGoogleUser) {
+      await resolveOAuthUser(userId, email, token, googleDisplayName);
+      return;
+    }
+
     try {
       const response = await api.get<User>('/users/me', token);
       if (response.success && response.data) {
@@ -83,7 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updatedAt: new Date().toISOString(),
       });
     }
-  }, []);
+  }, [resolveOAuthUser]);
 
   useEffect(() => {
     // Check if Supabase is configured
@@ -100,10 +140,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setSupabaseUser(session?.user ?? null);
-      // Set auth token for API calls
       setAuthToken(session?.access_token ?? null);
       if (session?.user && session?.access_token) {
-        loadUserProfile(session.user.id, session.user.email || '', session.access_token);
+        const isGoogle = session.user.app_metadata?.provider === 'google'
+          || session.user.app_metadata?.providers?.includes('google');
+        const googleName = session.user.user_metadata?.full_name;
+        loadUserProfile(session.user.id, session.user.email || '', session.access_token, isGoogle, googleName);
       } else {
         setLoading(false);
       }
@@ -114,12 +156,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (_event, session) => {
         setSession(session);
         setSupabaseUser(session?.user ?? null);
-        // Set auth token for API calls
         setAuthToken(session?.access_token ?? null);
         if (session?.user && session?.access_token) {
-          await loadUserProfile(session.user.id, session.user.email || '', session.access_token);
+          const isGoogle = session.user.app_metadata?.provider === 'google'
+            || session.user.app_metadata?.providers?.includes('google');
+          const googleName = session.user.user_metadata?.full_name;
+          await loadUserProfile(session.user.id, session.user.email || '', session.access_token, isGoogle, googleName);
         } else {
           setUser(null);
+          setOauthStatus(null);
         }
         setLoading(false);
       }
@@ -132,12 +177,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
     if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co') {
-      // Development mode - mock sign in
-      if (email.includes('student')) {
-        setUser(MOCK_STUDENT_USER);
-      } else {
-        setUser(MOCK_USER);
-      }
+      // Development mode - mock sign in (admin only)
+      setUser(MOCK_USER);
       return;
     }
 
@@ -145,12 +186,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
   };
 
+  const signInWithGoogle = async () => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+
+    if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co') {
+      // Development mode - mock Google sign in as student
+      setUser(MOCK_STUDENT_USER);
+      setOauthStatus('active');
+      return;
+    }
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + '/auth/callback',
+      },
+    });
+    if (error) throw error;
+  };
+
   const signOut = async () => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
     if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co') {
-      // Development mode - mock sign out
       setUser(null);
+      setOauthStatus(null);
       setAuthToken(null);
       return;
     }
@@ -159,6 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setSupabaseUser(null);
     setSession(null);
+    setOauthStatus(null);
     setAuthToken(null);
   };
 
@@ -181,7 +242,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         supabaseUser,
         session,
         loading,
+        oauthStatus,
         signIn,
+        signInWithGoogle,
         signOut,
         getToken,
       }}

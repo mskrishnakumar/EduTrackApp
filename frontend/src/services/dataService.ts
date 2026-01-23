@@ -237,6 +237,16 @@ export async function getStudentAttendanceHistory(
   );
 }
 
+export async function updateStudentProfile(
+  studentId: string,
+  data: { displayName: string; phone?: string }
+): Promise<ApiResponse<void>> {
+  if (USE_MOCK_API) {
+    return mockApi.studentPortal.updateProfile(studentId, data);
+  }
+  return api.put<void>(`/student-portal/profile/${studentId}`, data, authToken);
+}
+
 // ==================== Notifications ====================
 
 export async function getNotifications(userId: string): Promise<ApiResponse<Notification[]>> {
@@ -261,6 +271,15 @@ export async function markAllNotificationsRead(userId: string): Promise<ApiRespo
 }
 
 // ==================== Registrations ====================
+
+export async function createRegistrationRequest(
+  data: { displayName: string; email: string; password: string }
+): Promise<ApiResponse<StudentRegistration>> {
+  if (USE_MOCK_API) {
+    return mockApi.registrations.create(data);
+  }
+  return api.post<StudentRegistration>('/registrations', data, authToken);
+}
 
 export async function getRegistrations(): Promise<ApiResponse<StudentRegistration[]>> {
   if (USE_MOCK_API) {
@@ -332,6 +351,7 @@ export const dataService = {
     getDashboard: getStudentDashboard,
     getMilestones: getStudentPortalMilestones,
     getAttendanceHistory: getStudentAttendanceHistory,
+    updateProfile: updateStudentProfile,
   },
   notifications: {
     getAll: getNotifications,
@@ -340,6 +360,7 @@ export const dataService = {
   },
   registrations: {
     getAll: getRegistrations,
+    create: createRegistrationRequest,
     approve: approveRegistration,
     reject: rejectRegistration,
   },

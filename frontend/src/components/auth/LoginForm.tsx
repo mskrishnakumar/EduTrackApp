@@ -102,17 +102,6 @@ export function LoginForm() {
         >
           Sign in
         </Button>
-
-        {/* Sign up link */}
-        <p className="text-center mt-6 text-body text-text-secondary">
-          Don't have an account?{' '}
-          <a
-            href="#"
-            className="text-primary font-medium hover:text-primary-dark hover:underline"
-          >
-            Contact your administrator
-          </a>
-        </p>
       </form>
     </div>
   );

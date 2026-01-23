@@ -1,5 +1,5 @@
 // User Types
-export type UserRole = 'admin' | 'coordinator';
+export type UserRole = 'admin' | 'coordinator' | 'student';
 
 export interface User {
   id: string;
@@ -183,6 +183,20 @@ export interface UserEntity {
   role: UserRole;
   centerId: string;
   centerName: string;
+  studentId?: string;
+  authProvider?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RegistrationEntity {
+  partitionKey: string; // 'registration'
+  rowKey: string; // registration ID
+  email: string;
+  displayName: string;
+  googleUserId: string;
+  status: 'pending' | 'approved' | 'rejected';
+  studentId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -201,6 +215,7 @@ export interface StudentEntity {
   partitionKey: string; // centerId
   rowKey: string; // studentId
   name: string;
+  email?: string;
   age: number;
   programId: string;
   programName: string;

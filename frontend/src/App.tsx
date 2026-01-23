@@ -1,12 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
 import {
   LoginPage,
-  RegisterPage,
   DashboardPage,
   StudentsPage,
   StudentDetailPage,
@@ -23,6 +23,7 @@ import {
   StudentProfilePage,
   StudentNotificationsPage,
 } from './pages';
+import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { ROUTES } from './constants/routes';
 
 function RoleRedirect() {
@@ -37,11 +38,13 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <NotificationProvider>
         <LanguageProvider>
         <Routes>
           {/* Public routes */}
           <Route path={ROUTES.LOGIN} element={<LoginPage />} />
-          <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
+          <Route path={ROUTES.AUTH_CALLBACK} element={<AuthCallbackPage />} />
+          <Route path={ROUTES.REGISTER} element={<Navigate to={ROUTES.LOGIN} replace />} />
 
           {/* Admin/Coordinator routes */}
           <Route
@@ -86,6 +89,7 @@ function App() {
           } />
         </Routes>
         </LanguageProvider>
+        </NotificationProvider>
       </AuthProvider>
     </BrowserRouter>
   );

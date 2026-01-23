@@ -7,7 +7,7 @@ EduTrack is a Student Progress Monitoring web application built for educators to
 - **Frontend**: React 19 + Vite + TypeScript + Tailwind CSS v3
 - **Backend**: Azure Functions (TypeScript) - planned
 - **Database**: Azure Table Storage - planned
-- **Auth**: Supabase Auth (email/password)
+- **Auth**: Supabase Auth (email/password for admins, Google OAuth for students)
 - **Charts**: Recharts
 - **Reports**: jsPDF, xlsx
 - **Icons**: Heroicons
@@ -20,7 +20,7 @@ EduTrack/
 │   │   ├── components/
 │   │   │   ├── common/          # Button, Input, Modal, Badge, Card, Table, Select
 │   │   │   ├── layout/          # Sidebar, Topbar, AppLayout
-│   │   │   ├── auth/            # LoginForm, LoginHero, ProtectedRoute
+│   │   │   ├── auth/            # LoginForm, LoginHero, GoogleLoginButton, PendingApprovalMessage, ProtectedRoute
 │   │   │   ├── dashboard/       # StatCard, RecentActivity, QuickStats, QuarterGoalCard
 │   │   │   ├── students/        # StudentTable, StudentForm, StudentCard
 │   │   │   ├── milestones/      # MilestoneForm, MilestoneTimeline
@@ -31,7 +31,7 @@ EduTrack/
 │   │   ├── pages/               # All page components
 │   │   ├── hooks/               # Custom React hooks
 │   │   ├── services/            # API services
-│   │   ├── context/             # AuthContext
+│   │   ├── context/             # AuthContext, NotificationContext, LanguageContext
 │   │   ├── types/               # TypeScript interfaces
 │   │   ├── constants/           # Routes, etc.
 │   │   └── utils/               # Utility functions
@@ -333,11 +333,73 @@ Without this, API calls go out without `Authorization: Bearer <token>` header an
 }
 ```
 
+## Google OAuth for Student Login
+
+### Overview
+- **Admins/Coordinators**: Sign in with email/password (Supabase Auth)
+- **Students**: Sign in with Google OAuth (Supabase Google provider)
+- Login page has Admin/Student tab switcher
+
+### Authentication Flow
+
+**Admin login**: Email/password → Supabase → `/api/users/me` → admin dashboard
+
+**Student Google OAuth**:
+1. Student clicks "Sign in with Google" on Student tab
+2. `supabase.auth.signInWithOAuth({ provider: 'google' })` redirects to Google
+3. After consent, redirects to `/auth/callback`
+4. Supabase sets session, `onAuthStateChange` fires
+5. AuthContext detects Google provider, calls `POST /api/auth/oauth-resolve`
+6. Backend checks:
+   - User already in USERS table → `active` (immediate access)
+   - Email matches a student record → auto-link, create user profile → `active`
+   - No match → create pending registration → `pending_approval`
+7. If active → redirect to student dashboard
+8. If pending → show "Pending Approval" message
+
+### Backend Endpoint: POST /api/auth/oauth-resolve
+
+Located in `api/src/functions/oauthResolve.ts`. Resolves a Google OAuth user's status:
+- Returns `{ status: 'active', studentId, displayName }` if linked
+- Returns `{ status: 'pending_approval' }` if awaiting admin review
+- Returns `{ status: 'rejected' }` if previously rejected
+
+### Key Files
+- `frontend/src/context/AuthContext.tsx` - `signInWithGoogle()`, `oauthStatus`, `resolveOAuthUser()`
+- `frontend/src/pages/LoginPage.tsx` - Tab switcher UI
+- `frontend/src/components/auth/GoogleLoginButton.tsx` - Google sign-in button
+- `frontend/src/components/auth/PendingApprovalMessage.tsx` - Pending/rejected UI
+- `frontend/src/pages/AuthCallbackPage.tsx` - OAuth redirect handler
+- `api/src/functions/oauthResolve.ts` - Backend resolve endpoint
+- `api/src/middleware/auth.ts` - OAuth provider detection, student role default
+
+### Supabase Google OAuth Setup
+
+1. **Google Cloud Console**:
+   - Create OAuth 2.0 Client ID (Web application)
+   - Authorized redirect URI: `https://<supabase-project>.supabase.co/auth/v1/callback`
+   - Authorized JavaScript origins: your frontend domain + `http://localhost:5173`
+
+2. **Supabase Dashboard**:
+   - Authentication → Providers → Google → Enable
+   - Paste Client ID and Client Secret
+
+No new environment variables needed - uses existing `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+
+### Development Mode (Mock)
+- Admin tab: any email/password logs in as mock admin
+- Student tab: clicking Google button logs in as mock student (Alex Johnson)
+- No actual Google redirect in dev mode
+
+### Role Defaults
+- **Email/password users** (no profile in Table Storage): default to `admin`
+- **Google OAuth users** (no profile in Table Storage): default to `student`
+
 ## Known Issues / TODOs
-1. Large JS bundle size (876 kB) - could benefit from code splitting
+1. Large JS bundle size (940 kB) - could benefit from code splitting
 2. Backend API exists but requires Azurite for local development
 3. Azure Table Storage tables auto-create on first access
-4. Need to configure Supabase for real authentication
+4. Need to configure Supabase Google provider for production OAuth
 
 ## Key Files for Reference
 - **Design Mockup**: `EduTrack - Student Progress Monitoring.html`

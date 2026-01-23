@@ -1,6 +1,7 @@
 export const ROUTES = {
   LOGIN: '/login',
   REGISTER: '/register',
+  AUTH_CALLBACK: '/auth/callback',
   DASHBOARD: '/',
   STUDENTS: '/students',
   STUDENT_DETAIL: '/students/:id',

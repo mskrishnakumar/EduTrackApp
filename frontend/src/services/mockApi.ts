@@ -471,7 +471,41 @@ export async function markAllNotificationsRead(userId: string): Promise<ApiRespo
   return { success: true };
 }
 
+// ==================== Student Profile ====================
+
+export async function updateStudentProfile(
+  studentId: string,
+  data: { displayName: string; phone?: string }
+): Promise<ApiResponse<void>> {
+  await delay(MOCK_DELAY);
+
+  const index = students.findIndex(s => s.id === studentId);
+  if (index === -1) {
+    return { success: false, error: 'Student not found' };
+  }
+
+  students[index] = { ...students[index], name: data.displayName };
+  return { success: true };
+}
+
 // ==================== Registrations ====================
+
+export async function createRegistration(
+  data: { displayName: string; email: string; password: string }
+): Promise<ApiResponse<StudentRegistration>> {
+  await delay(MOCK_DELAY);
+
+  const newRegistration: StudentRegistration = {
+    id: generateId(),
+    email: data.email,
+    displayName: data.displayName,
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+  };
+
+  registrations.push(newRegistration);
+  return { success: true, data: newRegistration };
+}
 
 export async function getRegistrations(): Promise<ApiResponse<StudentRegistration[]>> {
   await delay(MOCK_DELAY);
@@ -551,6 +585,7 @@ export const mockApi = {
     getDashboard: getStudentDashboard,
     getMilestones: getStudentMilestonesPortal,
     getAttendanceHistory: getStudentAttendanceHistory,
+    updateProfile: updateStudentProfile,
   },
   notifications: {
     getAll: getNotifications,
@@ -559,6 +594,7 @@ export const mockApi = {
   },
   registrations: {
     getAll: getRegistrations,
+    create: createRegistration,
     approve: approveRegistration,
     reject: rejectRegistration,
   },

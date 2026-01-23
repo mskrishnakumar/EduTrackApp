@@ -31,10 +31,11 @@ console.log('[Auth] JWKS config check:', {
 export interface AuthenticatedUser {
   id: string;
   email: string;
-  role: 'admin' | 'coordinator';
+  role: 'admin' | 'coordinator' | 'student';
   centerId: string | null;
   centerName: string | null;
   displayName: string;
+  studentId?: string | null;
 }
 
 export interface AuthResult {
@@ -51,6 +52,14 @@ interface SupabaseJwtPayload {
   aud?: string;
   exp?: number;
   iat?: number;
+  app_metadata?: {
+    provider?: string;
+    providers?: string[];
+  };
+  user_metadata?: {
+    full_name?: string;
+    avatar_url?: string;
+  };
 }
 
 // Function to get signing key from JWKS
@@ -190,11 +199,33 @@ export async function verifyAuth(
           centerId: userProfile.centerId || null,
           centerName: userProfile.centerName || null,
           displayName: userProfile.displayName,
+          studentId: userProfile.studentId || null,
         },
       };
     } catch (profileError) {
-      // If profile doesn't exist, create default admin profile
-      context.log.warn('User profile not found in Table Storage, using default');
+      // If profile doesn't exist, determine role based on auth provider
+      const isOAuthUser = decoded.app_metadata?.provider === 'google'
+        || decoded.app_metadata?.providers?.includes('google');
+
+      if (isOAuthUser) {
+        // Google OAuth users default to student role
+        context.log.warn('OAuth user profile not found, defaulting to student role');
+        return {
+          success: true,
+          user: {
+            id: decoded.sub,
+            email: decoded.email || '',
+            role: 'student',
+            centerId: null,
+            centerName: null,
+            displayName: decoded.user_metadata?.full_name || decoded.email?.split('@')[0] || 'User',
+            studentId: null,
+          },
+        };
+      }
+
+      // Email/password users default to admin role (existing behavior)
+      context.log.warn('User profile not found in Table Storage, using default admin');
       return {
         success: true,
         user: {
