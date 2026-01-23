@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
-import { ROUTES } from '../../constants/routes';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -13,7 +11,6 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
 
   const { signIn } = useAuth();
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +19,7 @@ export function LoginForm() {
 
     try {
       await signIn(email, password);
-      navigate(ROUTES.DASHBOARD);
+      // Redirect is handled by LoginPage's useEffect based on user role
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed. Please check your credentials.');
     } finally {

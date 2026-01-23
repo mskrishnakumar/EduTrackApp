@@ -9,10 +9,11 @@ export function LoginPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if already logged in
+  // Redirect if already logged in (role-based)
   useEffect(() => {
     if (user && !loading) {
-      navigate(ROUTES.DASHBOARD);
+      const destination = user.role === 'student' ? ROUTES.STUDENT_DASHBOARD : ROUTES.DASHBOARD;
+      navigate(destination);
     }
   }, [user, loading, navigate]);
 

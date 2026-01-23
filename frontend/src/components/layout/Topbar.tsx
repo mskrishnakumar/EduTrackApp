@@ -21,6 +21,11 @@ const pageTitles: Record<string, string> = {
   [ROUTES.ATTENDANCE]: 'Attendance',
   [ROUTES.REPORTS]: 'Reports',
   [ROUTES.SETTINGS]: 'Settings',
+  [ROUTES.STUDENT_DASHBOARD]: 'My Dashboard',
+  [ROUTES.STUDENT_MILESTONES]: 'My Milestones',
+  [ROUTES.STUDENT_ATTENDANCE]: 'My Attendance',
+  [ROUTES.STUDENT_PROFILE]: 'My Profile',
+  [ROUTES.STUDENT_NOTIFICATIONS]: 'Notifications',
 };
 
 export function Topbar({ onMobileMenuToggle }: TopbarProps) {
@@ -36,8 +41,8 @@ export function Topbar({ onMobileMenuToggle }: TopbarProps) {
     if (location.pathname.startsWith('/students/')) {
       return 'Student Detail';
     }
-    // Default to Dashboard
-    return 'Dashboard';
+    // Default based on role
+    return user?.role === 'student' ? 'My Dashboard' : 'Dashboard';
   };
 
   const getInitials = (name: string) => {
@@ -72,7 +77,7 @@ export function Topbar({ onMobileMenuToggle }: TopbarProps) {
           <MagnifyingGlassIcon className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary" />
           <input
             type="text"
-            placeholder="Search students..."
+            placeholder={user?.role === 'student' ? 'Search milestones...' : 'Search students...'}
             className="w-72 pl-10 pr-4 py-2.5 border-[1.5px] border-gray-border rounded-input text-nav bg-white placeholder:text-gray-400 focus:outline-none focus:border-secondary focus:ring-4 focus:ring-secondary/10 transition-all"
           />
         </div>

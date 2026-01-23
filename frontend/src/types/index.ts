@@ -1,5 +1,5 @@
 // User Types
-export type UserRole = 'admin' | 'coordinator';
+export type UserRole = 'admin' | 'coordinator' | 'student';
 
 export interface User {
   id: string;
@@ -8,6 +8,7 @@ export interface User {
   role: UserRole;
   centerId: string | null;
   centerName: string | null;
+  studentId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,6 +26,7 @@ export interface Center {
 export interface Student {
   id: string;
   name: string;
+  email?: string;
   age: number;
   programId: string;
   programName: string;
@@ -231,4 +233,45 @@ export interface AnalyticsFilters {
   endDate?: string;
   programId?: string;
   centerId?: string;
+}
+
+// Notification Types
+export type NotificationType = 'milestone' | 'attendance' | 'program' | 'general';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  isRead: boolean;
+  relatedId?: string;
+  createdAt: string;
+}
+
+// Student Dashboard Types
+export interface StudentDashboardStats {
+  studentName: string;
+  programName: string;
+  centerName: string;
+  enrollmentDate: string;
+  totalMilestones: number;
+  milestonesThisQuarter: number;
+  attendanceRate: number;
+  totalDaysPresent: number;
+  totalDaysAbsent: number;
+  totalDays: number;
+  recentMilestones: Milestone[];
+}
+
+// Student Registration Types
+export type RegistrationStatus = 'pending' | 'approved' | 'rejected';
+
+export interface StudentRegistration {
+  id: string;
+  email: string;
+  displayName: string;
+  status: RegistrationStatus;
+  studentId?: string;
+  createdAt: string;
 }

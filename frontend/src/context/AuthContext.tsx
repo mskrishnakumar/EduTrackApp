@@ -25,6 +25,20 @@ const MOCK_USER: User = {
   role: 'admin',
   centerId: null,
   centerName: null,
+  studentId: null,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
+
+// Mock student user for development
+const MOCK_STUDENT_USER: User = {
+  id: 'mock-student-user-id',
+  email: 'student@edutrack.com',
+  displayName: 'Alex Johnson',
+  role: 'student',
+  centerId: 'center-1',
+  centerName: 'Downtown Learning Center',
+  studentId: 'stu-1',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };
@@ -49,6 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: 'admin',
           centerId: null,
           centerName: null,
+          studentId: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
@@ -63,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: 'admin',
         centerId: null,
         centerName: null,
+        studentId: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
@@ -117,7 +133,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co') {
       // Development mode - mock sign in
-      setUser(MOCK_USER);
+      if (email.includes('student')) {
+        setUser(MOCK_STUDENT_USER);
+      } else {
+        setUser(MOCK_USER);
+      }
       return;
     }
 

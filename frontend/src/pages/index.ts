@@ -1,4 +1,5 @@
 export { LoginPage } from './LoginPage';
+export { RegisterPage } from './RegisterPage';
 export { DashboardPage } from './DashboardPage';
 export { StudentsPage } from './StudentsPage';
 export { StudentDetailPage } from './StudentDetailPage';
@@ -9,3 +10,8 @@ export { AttendancePage } from './AttendancePage';
 export { AnalyticsPage } from './AnalyticsPage';
 export { ReportsPage } from './ReportsPage';
 export { SettingsPage } from './SettingsPage';
+export { StudentDashboardPage } from './StudentDashboardPage';
+export { StudentMilestonesPage } from './StudentMilestonesPage';
+export { StudentAttendancePage } from './StudentAttendancePage';
+export { StudentProfilePage } from './StudentProfilePage';
+export { StudentNotificationsPage } from './StudentNotificationsPage';

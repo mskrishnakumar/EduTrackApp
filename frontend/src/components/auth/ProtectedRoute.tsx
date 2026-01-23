@@ -1,11 +1,12 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { UserRole } from '../../types';
 import { ROUTES } from '../../constants/routes';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'coordinator';
+  requiredRole?: UserRole | UserRole[];
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
@@ -30,9 +31,15 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   }
 
   // Check role if required
-  if (requiredRole && user.role !== requiredRole && user.role !== 'admin') {
-    // Admin can access everything, coordinators have restricted access
-    return <Navigate to={ROUTES.DASHBOARD} replace />;
+  if (requiredRole) {
+    const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+
+    // Admin bypasses all role checks
+    if (user.role !== 'admin' && !allowedRoles.includes(user.role)) {
+      // Redirect to appropriate dashboard based on user's role
+      const redirectTo = user.role === 'student' ? ROUTES.STUDENT_DASHBOARD : ROUTES.DASHBOARD;
+      return <Navigate to={redirectTo} replace />;
+    }
   }
 
   return <>{children}</>;

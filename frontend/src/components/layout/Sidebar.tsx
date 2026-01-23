@@ -12,6 +12,8 @@ import {
   Bars3Icon,
   ArrowRightOnRectangleIcon,
   BuildingOfficeIcon,
+  BellIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../context/AuthContext';
 import { ROUTES } from '../../constants/routes';
@@ -21,7 +23,7 @@ interface SidebarProps {
   onToggle: () => void;
 }
 
-const navItems = [
+const adminNavItems = [
   { path: ROUTES.DASHBOARD, label: 'Dashboard', icon: Squares2X2Icon },
   { path: ROUTES.STUDENTS, label: 'Students', icon: UsersIcon },
   { path: ROUTES.PROGRAMS, label: 'Programs', icon: AcademicCapIcon },
@@ -29,6 +31,13 @@ const navItems = [
   { path: ROUTES.MILESTONES, label: 'Milestones', icon: CheckCircleIcon },
   { path: ROUTES.ATTENDANCE, label: 'Attendance', icon: CalendarIcon },
   { path: ROUTES.REPORTS, label: 'Reports', icon: DocumentTextIcon },
+];
+
+const studentNavItems = [
+  { path: ROUTES.STUDENT_DASHBOARD, label: 'My Dashboard', icon: Squares2X2Icon },
+  { path: ROUTES.STUDENT_MILESTONES, label: 'My Milestones', icon: CheckCircleIcon },
+  { path: ROUTES.STUDENT_ATTENDANCE, label: 'My Attendance', icon: CalendarIcon },
+  { path: ROUTES.STUDENT_NOTIFICATIONS, label: 'Notifications', icon: BellIcon },
 ];
 
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
@@ -44,8 +53,10 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       .slice(0, 2);
   };
 
+  const navItems = user?.role === 'student' ? studentNavItems : adminNavItems;
+
   const isActive = (path: string) => {
-    if (path === ROUTES.DASHBOARD) {
+    if (path === ROUTES.DASHBOARD || path === ROUTES.STUDENT_DASHBOARD) {
       return location.pathname === path;
     }
     return location.pathname.startsWith(path);
@@ -130,15 +141,15 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 {user?.displayName || 'User'}
               </h4>
               <span className="inline-block bg-warning-light text-amber-800 px-1.5 py-0.5 rounded text-[10px] font-semibold mt-0.5">
-                {user?.role === 'admin' ? 'Admin' : 'Coordinator'}
+                {user?.role === 'admin' ? 'Admin' : user?.role === 'student' ? 'Student' : 'Coordinator'}
               </span>
             </div>
           )}
         </div>
 
-        {/* Settings */}
+        {/* Settings / Profile */}
         <NavLink
-          to={ROUTES.SETTINGS}
+          to={user?.role === 'student' ? ROUTES.STUDENT_PROFILE : ROUTES.SETTINGS}
           className={`
             flex items-center gap-3 px-3 py-2.5 mt-2 rounded-md
             text-nav text-text-secondary
@@ -146,8 +157,12 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             transition-all duration-200
           `}
         >
-          <Cog6ToothIcon className="w-[18px] h-[18px] opacity-70" />
-          {!isCollapsed && <span>Settings</span>}
+          {user?.role === 'student' ? (
+            <UserCircleIcon className="w-[18px] h-[18px] opacity-70" />
+          ) : (
+            <Cog6ToothIcon className="w-[18px] h-[18px] opacity-70" />
+          )}
+          {!isCollapsed && <span>{user?.role === 'student' ? 'My Profile' : 'Settings'}</span>}
         </NavLink>
 
         {/* Logout */}

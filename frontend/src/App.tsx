@@ -3,8 +3,10 @@ import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { useAuth } from './context/AuthContext';
 import {
   LoginPage,
+  RegisterPage,
   DashboardPage,
   StudentsPage,
   StudentDetailPage,
@@ -15,8 +17,21 @@ import {
   AnalyticsPage,
   ReportsPage,
   SettingsPage,
+  StudentDashboardPage,
+  StudentMilestonesPage,
+  StudentAttendancePage,
+  StudentProfilePage,
+  StudentNotificationsPage,
 } from './pages';
 import { ROUTES } from './constants/routes';
+
+function RoleRedirect() {
+  const { user } = useAuth();
+  if (user?.role === 'student') {
+    return <Navigate to={ROUTES.STUDENT_DASHBOARD} replace />;
+  }
+  return <Navigate to={ROUTES.DASHBOARD} replace />;
+}
 
 function App() {
   return (
@@ -26,11 +41,12 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+          <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
 
-          {/* Protected routes with layout */}
+          {/* Admin/Coordinator routes */}
           <Route
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole={['admin', 'coordinator']}>
                 <AppLayout />
               </ProtectedRoute>
             }
@@ -47,8 +63,27 @@ function App() {
             <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
           </Route>
 
-          {/* Redirect unknown routes to dashboard */}
-          <Route path="*" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
+          {/* Student routes */}
+          <Route
+            element={
+              <ProtectedRoute requiredRole="student">
+                <AppLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path={ROUTES.STUDENT_DASHBOARD} element={<StudentDashboardPage />} />
+            <Route path={ROUTES.STUDENT_MILESTONES} element={<StudentMilestonesPage />} />
+            <Route path={ROUTES.STUDENT_ATTENDANCE} element={<StudentAttendancePage />} />
+            <Route path={ROUTES.STUDENT_PROFILE} element={<StudentProfilePage />} />
+            <Route path={ROUTES.STUDENT_NOTIFICATIONS} element={<StudentNotificationsPage />} />
+          </Route>
+
+          {/* Catch-all: role-based redirect */}
+          <Route path="*" element={
+            <ProtectedRoute>
+              <RoleRedirect />
+            </ProtectedRoute>
+          } />
         </Routes>
         </LanguageProvider>
       </AuthProvider>

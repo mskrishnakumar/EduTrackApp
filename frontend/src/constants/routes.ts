@@ -1,5 +1,6 @@
 export const ROUTES = {
   LOGIN: '/login',
+  REGISTER: '/register',
   DASHBOARD: '/',
   STUDENTS: '/students',
   STUDENT_DETAIL: '/students/:id',
@@ -10,6 +11,12 @@ export const ROUTES = {
   ANALYTICS: '/analytics',
   REPORTS: '/reports',
   SETTINGS: '/settings',
+  // Student portal routes
+  STUDENT_DASHBOARD: '/my-dashboard',
+  STUDENT_MILESTONES: '/my-milestones',
+  STUDENT_ATTENDANCE: '/my-attendance',
+  STUDENT_PROFILE: '/my-profile',
+  STUDENT_NOTIFICATIONS: '/my-notifications',
 } as const;
 
 export const getStudentDetailRoute = (id: string) => `/students/${id}`;
