@@ -136,27 +136,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Check active session
+    // Get initial session - onAuthStateChange INITIAL_SESSION will handle profile loading
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setSupabaseUser(session?.user ?? null);
       setAuthToken(session?.access_token ?? null);
-      if (session?.user && session?.access_token) {
-        const isGoogle = session.user.app_metadata?.provider === 'google'
-          || session.user.app_metadata?.providers?.includes('google');
-        const googleName = session.user.user_metadata?.full_name;
-        loadUserProfile(session.user.id, session.user.email || '', session.access_token, isGoogle, googleName);
-      } else {
+      if (!session) {
         setLoading(false);
       }
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         setSession(session);
         setSupabaseUser(session?.user ?? null);
         setAuthToken(session?.access_token ?? null);
+
+        // Skip profile reload on token refreshes - only load on meaningful events
+        if (event === 'TOKEN_REFRESHED') {
+          return;
+        }
+
         if (session?.user && session?.access_token) {
           const isGoogle = session.user.app_metadata?.provider === 'google'
             || session.user.app_metadata?.providers?.includes('google');
